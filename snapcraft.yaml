@@ -1,0 +1,21 @@
+name: juju-crashdump
+version: 1.0.0
+summary: Gather logs and other debugging info from a Juju model
+description: >
+  The 'juju crashdump' plugin eases the collection of logs and
+  other debugging info from a Juju model, and can even submit
+  a bug to Launchpad with the data attached.  This makes it
+  easy to debug a charm failure when you don't have direct
+  access to the Juju model.
+confinement: classic
+grade: stable
+apps:
+  juju-crashdump:
+    command: juju-crashdump
+parts:
+  juju-crashdump:
+    plugin: python
+    python-version: python2
+    python-packages:
+      - pyyaml
+    source: .
