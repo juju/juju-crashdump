@@ -28,7 +28,7 @@ from textwrap import dedent
 
 MAX_FILE_SIZE = 5000000 # 5MB max for files
 DIRECTORIES = [
-    '/var/lib/juju',
+    #'/var/lib/juju',  # Added below, if --small not passed.
     '/var/log',
     '/etc/ceph',
     '/etc/cinder',
@@ -228,6 +228,9 @@ def parse_args():
     parser.add_argument('-u', '--uniq',
                         help="Unique id for this crashdump. "
                         "We generate a uuid if this is not specified.")
+    parser.add_argument('-s', '--small', action='store_true',
+                        help="Make a 'small' crashdump, by skipping the contents "
+                        "of /var/lib/juju.")
     return parser.parse_args()
 
 
@@ -238,6 +241,8 @@ def main():
               "You must 'apt install' apport to use the 'bug' option. "
               "Aborting run.")
         return
+    if not opts.small:
+        DIRECTORIES.append('/var/lib/juju')
     collector = CrashCollector(
         model=opts.model,
         max_size=opts.max_file_size,
