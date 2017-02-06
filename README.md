@@ -28,3 +28,14 @@ juju crashdump [-h] [-d] [-m MODEL] [-f MAX_FILE_SIZE] [-b BUG]
 <dt>-u UNIQ, --uniq UNIQ</dt>
 <dd>Unique id for this crashdump. We generate a uuid if this is not specified.</dd>
 </dl>
+
+
+## Installation
+
+> Note: A snap for this plugin is currently pending review.
+
+You can install this plugin using pip:
+
+```
+sudo pip install git+https://github.com/juju/juju-crashdump.git
+```
