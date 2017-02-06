@@ -32,9 +32,13 @@ juju crashdump [-h] [-d] [-m MODEL] [-f MAX_FILE_SIZE] [-b BUG]
 
 ## Installation
 
-> Note: A snap for this plugin is currently pending review.
+The best way to install this plugin is via the snap:
 
-You can install this plugin using pip:
+```
+sudo snap install --classic juju-crashdump
+```
+
+However, you can also install using pip:
 
 ```
 sudo pip install git+https://github.com/juju/juju-crashdump.git
