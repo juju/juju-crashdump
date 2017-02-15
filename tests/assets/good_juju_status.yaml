@@ -1,0 +1,416 @@
+model:
+  name: integration-juju2
+  controller: serverstack-serverstack
+  cloud: serverstack
+  region: serverstack
+  version: 2.0.3
+machines:
+  "0":
+    juju-status:
+      current: started
+      since: 10 Feb 2017 18:16:06Z
+      version: 2.0.3
+    dns-name: 10.5.0.205
+    ip-addresses:
+    - 10.245.163.34
+    - 10.5.0.205
+    instance-id: 5b11ee11-27a2-44bb-9e04-a00368116678
+    machine-status:
+      current: running
+      message: ACTIVE
+      since: 10 Feb 2017 18:14:35Z
+    series: xenial
+    hardware: arch=amd64 cores=2 mem=4096M root-disk=40960M availability-zone=nova
+  "1":
+    juju-status:
+      current: started
+      since: 10 Feb 2017 22:32:00Z
+      version: 2.0.3
+    dns-name: 10.5.0.206
+    ip-addresses:
+    - 10.245.162.41
+    - 10.5.0.206
+    instance-id: 5a9d6503-26c0-405e-a8b9-28f2c6f5bbf8
+    machine-status:
+      current: running
+      message: ACTIVE
+      since: 10 Feb 2017 18:14:50Z
+    series: xenial
+    hardware: arch=amd64 cores=4 mem=4152M root-disk=81920M availability-zone=nova
+  "2":
+    juju-status:
+      current: started
+      since: 10 Feb 2017 18:16:07Z
+      version: 2.0.3
+    dns-name: 10.5.0.207
+    ip-addresses:
+    - 10.245.163.35
+    - 10.5.0.207
+    instance-id: 566bdc4a-230d-4b8a-89fb-6ae32052bbf7
+    machine-status:
+      current: running
+      message: ACTIVE
+      since: 10 Feb 2017 18:14:58Z
+    series: xenial
+    hardware: arch=amd64 cores=2 mem=4096M root-disk=40960M availability-zone=nova
+  "3":
+    juju-status:
+      current: started
+      since: 10 Feb 2017 18:16:12Z
+      version: 2.0.3
+    dns-name: 10.5.0.208
+    ip-addresses:
+    - 10.5.0.208
+    instance-id: 0d5dcfb2-104b-47c3-9163-692dbcad5258
+    machine-status:
+      current: running
+      message: ACTIVE
+      since: 10 Feb 2017 18:15:06Z
+    series: xenial
+    hardware: arch=amd64 cores=4 mem=4152M root-disk=81920M availability-zone=nova
+  "4":
+    juju-status:
+      current: started
+      since: 10 Feb 2017 18:16:42Z
+      version: 2.0.3
+    dns-name: 10.5.0.209
+    ip-addresses:
+    - 10.5.0.209
+    instance-id: 0e9b9562-b753-46d7-935f-c801edfd089a
+    machine-status:
+      current: running
+      message: ACTIVE
+      since: 10 Feb 2017 18:15:06Z
+    series: xenial
+    hardware: arch=amd64 cores=2 mem=4096M root-disk=40960M availability-zone=nova
+  "5":
+    juju-status:
+      current: started
+      since: 10 Feb 2017 18:16:32Z
+      version: 2.0.3
+    dns-name: 10.5.0.211
+    ip-addresses:
+    - 10.5.0.211
+    instance-id: 08dbfbb7-db98-4984-a903-b64521f587d1
+    machine-status:
+      current: running
+      message: ACTIVE
+      since: 10 Feb 2017 18:15:22Z
+    series: xenial
+    hardware: arch=amd64 cores=2 mem=4096M root-disk=40960M availability-zone=nova
+  "6":
+    juju-status:
+      current: started
+      since: 10 Feb 2017 18:17:16Z
+      version: 2.0.3
+    dns-name: 10.5.0.210
+    ip-addresses:
+    - 10.245.162.102
+    - 10.5.0.210
+    instance-id: 9236665f-8ec8-4373-afa3-bbd0534abb2d
+    machine-status:
+      current: running
+      message: ACTIVE
+      since: 10 Feb 2017 18:15:22Z
+    series: xenial
+    hardware: arch=amd64 cores=4 mem=4152M root-disk=81920M availability-zone=nova
+applications:
+  ci-configurator:
+    charm: local:xenial/ci-configurator-129
+    series: xenial
+    os: ubuntu
+    charm-origin: local
+    charm-name: ci-configurator
+    charm-rev: 129
+    exposed: false
+    application-status:
+      current: unknown
+      since: 10 Feb 2017 18:23:33Z
+    relations:
+      jenkins-configurator:
+      - ci-oil-jenkins
+    subordinate-to:
+    - ci-oil-jenkins
+  ci-oil-apache2:
+    charm: local:xenial/apache2-6
+    series: xenial
+    os: ubuntu
+    charm-origin: local
+    charm-name: apache2
+    charm-rev: 6
+    exposed: true
+    application-status:
+      current: unknown
+      since: 10 Feb 2017 18:18:15Z
+    relations:
+      reverseproxy:
+      - ci-oil-test-catalog
+    units:
+      ci-oil-apache2/0:
+        workload-status:
+          current: unknown
+          since: 10 Feb 2017 18:18:15Z
+        juju-status:
+          current: idle
+          since: 15 Feb 2017 00:48:57Z
+          version: 2.0.3
+        leader: true
+        machine: "0"
+        open-ports:
+        - 80/tcp
+        - 443/tcp
+        public-address: 10.5.0.205
+  ci-oil-config:
+    charm: local:xenial/oil-ci-config-3
+    series: xenial
+    os: ubuntu
+    charm-origin: local
+    charm-name: oil-ci-config
+    charm-rev: 3
+    exposed: false
+    application-status:
+      current: unknown
+      since: 10 Feb 2017 18:37:17Z
+    relations:
+      jenkins-configurator:
+      - ci-oil-jenkins
+      oil-configurator:
+      - ci-oil-qmaster
+      oil-qmaster:
+      - ci-oil-qmaster
+      oildashboard:
+      - ci-oil-weebl
+      test-catalog:
+      - ci-oil-test-catalog
+    subordinate-to:
+    - ci-oil-jenkins
+    - ci-oil-qmaster
+  ci-oil-jenkins:
+    charm: local:xenial/jenkins-3
+    series: xenial
+    os: ubuntu
+    charm-origin: local
+    charm-name: jenkins
+    charm-rev: 3
+    exposed: false
+    application-status:
+      current: active
+      message: Jenkins is running
+      since: 15 Feb 2017 00:48:58Z
+    relations:
+      extension:
+      - ci-configurator
+      - ci-oil-config
+      website:
+      - ci-oil-jenkins-fe
+    units:
+      ci-oil-jenkins/0:
+        workload-status:
+          current: active
+          message: Jenkins is running
+          since: 15 Feb 2017 00:48:58Z
+        juju-status:
+          current: idle
+          since: 15 Feb 2017 00:48:58Z
+          version: 2.0.3
+        leader: true
+        machine: "1"
+        open-ports:
+        - 8080/tcp
+        public-address: 10.5.0.206
+        subordinates:
+          ci-configurator/0:
+            workload-status:
+              current: unknown
+              since: 10 Feb 2017 18:23:33Z
+            juju-status:
+              current: idle
+              since: 15 Feb 2017 00:48:02Z
+              version: 2.0.3
+            leader: true
+            upgrading-from: local:xenial/ci-configurator-129
+            public-address: 10.5.0.206
+          ci-oil-config/0:
+            workload-status:
+              current: unknown
+              since: 10 Feb 2017 18:37:17Z
+            juju-status:
+              current: idle
+              since: 15 Feb 2017 00:47:57Z
+              version: 2.0.3
+            leader: true
+            upgrading-from: local:xenial/oil-ci-config-3
+            public-address: 10.5.0.206
+  ci-oil-jenkins-fe:
+    charm: local:xenial/apache2-7
+    series: xenial
+    os: ubuntu
+    charm-origin: local
+    charm-name: apache2
+    charm-rev: 7
+    exposed: true
+    application-status:
+      current: unknown
+      since: 10 Feb 2017 18:17:56Z
+    relations:
+      reverseproxy:
+      - ci-oil-jenkins
+    units:
+      ci-oil-jenkins-fe/0:
+        workload-status:
+          current: unknown
+          since: 10 Feb 2017 18:17:56Z
+        juju-status:
+          current: idle
+          since: 15 Feb 2017 00:49:01Z
+          version: 2.0.3
+        leader: true
+        machine: "2"
+        open-ports:
+        - 80/tcp
+        - 443/tcp
+        public-address: 10.5.0.207
+  ci-oil-postgresql:
+    charm: local:xenial/postgresql-3
+    series: xenial
+    os: ubuntu
+    charm-origin: local
+    charm-name: postgresql
+    charm-rev: 3
+    exposed: false
+    application-status:
+      current: active
+      message: Live master (9.5.5)
+      since: 15 Feb 2017 00:49:12Z
+    relations:
+      coordinator:
+      - ci-oil-postgresql
+      db:
+      - ci-oil-test-catalog
+      db-admin:
+      - ci-oil-weebl
+      replication:
+      - ci-oil-postgresql
+    units:
+      ci-oil-postgresql/0:
+        workload-status:
+          current: active
+          message: Live master (9.5.5)
+          since: 15 Feb 2017 00:49:12Z
+        juju-status:
+          current: idle
+          since: 15 Feb 2017 00:49:13Z
+          version: 2.0.3
+        leader: true
+        machine: "3"
+        open-ports:
+        - 5432/tcp
+        public-address: 10.5.0.208
+    version: 9.5.5
+  ci-oil-qmaster:
+    charm: local:xenial/oil-qmaster-3
+    series: xenial
+    os: ubuntu
+    charm-origin: local
+    charm-name: oil-qmaster
+    charm-rev: 3
+    exposed: false
+    application-status:
+      current: unknown
+      since: 10 Feb 2017 18:22:53Z
+    relations:
+      extension:
+      - ci-oil-config
+      oil-qmaster:
+      - ci-oil-config
+      test-catalog:
+      - ci-oil-test-catalog
+    units:
+      ci-oil-qmaster/0:
+        workload-status:
+          current: unknown
+          since: 10 Feb 2017 18:22:53Z
+        juju-status:
+          current: idle
+          since: 15 Feb 2017 00:49:02Z
+          version: 2.0.3
+        leader: true
+        machine: "4"
+        public-address: 10.5.0.209
+        subordinates:
+          ci-oil-config/1:
+            workload-status:
+              current: unknown
+              since: 10 Feb 2017 18:24:21Z
+            juju-status:
+              current: idle
+              since: 15 Feb 2017 00:47:57Z
+              version: 2.0.3
+            upgrading-from: local:xenial/oil-ci-config-3
+            public-address: 10.5.0.209
+  ci-oil-test-catalog:
+    charm: local:xenial/test-catalog-3
+    series: xenial
+    os: ubuntu
+    charm-origin: local
+    charm-name: test-catalog
+    charm-rev: 3
+    exposed: false
+    application-status:
+      current: unknown
+      since: 10 Feb 2017 18:18:56Z
+    relations:
+      db:
+      - ci-oil-postgresql
+      test-catalog:
+      - ci-oil-config
+      - ci-oil-qmaster
+      website:
+      - ci-oil-apache2
+    units:
+      ci-oil-test-catalog/0:
+        workload-status:
+          current: unknown
+          since: 10 Feb 2017 18:18:56Z
+        juju-status:
+          current: idle
+          since: 15 Feb 2017 00:49:02Z
+          version: 2.0.3
+        leader: true
+        machine: "5"
+        open-ports:
+        - 7890/tcp
+        - 7891/tcp
+        public-address: 10.5.0.211
+  ci-oil-weebl:
+    charm: local:xenial/weebl-3
+    series: xenial
+    os: ubuntu
+    charm-origin: local
+    charm-name: weebl
+    charm-rev: 3
+    exposed: true
+    application-status:
+      current: active
+      message: Ready
+      since: 10 Feb 2017 18:38:12Z
+    relations:
+      database:
+      - ci-oil-postgresql
+      oildashboard:
+      - ci-oil-config
+    units:
+      ci-oil-weebl/0:
+        workload-status:
+          current: active
+          message: Ready
+          since: 10 Feb 2017 18:38:12Z
+        juju-status:
+          current: idle
+          since: 15 Feb 2017 00:49:09Z
+          version: 2.0.3
+        leader: true
+        machine: "6"
+        open-ports:
+        - 80/tcp
+        public-address: 10.5.0.210

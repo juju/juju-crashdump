@@ -25,9 +25,9 @@ except ImportError:
 from textwrap import dedent
 
 
-MAX_FILE_SIZE = 5000000 # 5MB max for files
+MAX_FILE_SIZE = 5000000  # 5MB max for files
 DIRECTORIES = [
-    #'/var/lib/juju',  # Added below, if --small not passed.
+    # '/var/lib/juju',  # Added below, if --small not passed.
     '/var/log',
     '/etc/ceph',
     '/etc/cinder',
@@ -108,7 +108,8 @@ def juju_debuglog():
 
 class CrashCollector(object):
     """A log file collector for juju and charms"""
-    def __init__(self, model, max_size, extra_dirs, output_dir=None, uniq=None):
+    def __init__(self, model, max_size, extra_dirs, output_dir=None,
+                 uniq=None):
         if model:
             set_model(model)
         self.max_size = max_size
@@ -161,7 +162,8 @@ class CrashCollector(object):
         run_cmd("xz --force %s" % tar_file)
         os.chdir(self.cwd)
         compressed_file = tar_file + '.xz'
-        shutil.move(os.path.join(self.tempdir, compressed_file), self.output_dir)
+        shutil.move(os.path.join(self.tempdir, compressed_file),
+                    self.output_dir)
         self.cleanup()
         return compressed_file
 
@@ -195,9 +197,9 @@ def upload_file_to_bug(bugnum, file_):
     apport.hookutils.attach_file(report, file_, overwrite=False)
     if len(report) != 0:
         print("Starting upload to lp:%s" % bugnum)
-        crashdb.update(bugnum, report,
-        'apport information', change_description=is_reporter,
-        attachment_comment='juju crashdump')
+        crashdb.update(bugnum, report, 'apport information',
+                       change_description=is_reporter,
+                       attachment_comment='juju crashdump')
 
 
 class ShowDescription(argparse.Action):
@@ -228,8 +230,8 @@ def parse_args():
                         help="Unique id for this crashdump. "
                         "We generate a uuid if this is not specified.")
     parser.add_argument('-s', '--small', action='store_true',
-                        help="Make a 'small' crashdump, by skipping the contents "
-                        "of /var/lib/juju.")
+                        help="Make a 'small' crashdump, by skipping the "
+                        "contents of /var/lib/juju.")
     return parser.parse_args()
 
 
