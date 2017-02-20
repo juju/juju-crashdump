@@ -50,17 +50,19 @@ TAR_CMD = """sudo find {dirs} -mount -type f -size -{max_size}c -o \
 
 def service_unit_addresses(status):
     """From a given juju_status.yaml dict return a mapping of
-    {'<ip>': ['<service1>', '<service2>', '<machine/container>']}."""
+    {'machine/container': ['<service1>', '<service2>', '<ip>']}."""
     out = defaultdict(set)
-    units = set()
+    ip_to_machine = dict()
     for m_id, m_info in status['machines'].items():
         if 'dns-name' not in m_info:
             continue
-        out[m_info['dns-name']].add("machine_%s" % m_id)
+        out[m_id].add(m_info['dns-name'])
+        ip_to_machine[m_info['dns-name']] = m_id
         for c_id, c_info in m_info.get('containers', {}).items():
             if 'dns-name' not in c_info:
                 continue
-            out[c_info['dns-name']].add("container_%s" % c_id)
+            out[c_id].add(c_info['dns-name'])
+            ip_to_machine[c_info['dns-name']] = c_id
 
     for _, a_info in status['applications'].items():
         if 'subordinate-to' in a_info:
@@ -68,17 +70,16 @@ def service_unit_addresses(status):
         for u_id, u_info in a_info.get('units', {}).items():
             if 'public-address' not in u_info:
                 continue
-            addr = u_info['public-address']
-            out[addr].add(u_id)
-            units.add(u_id)
+            machine = ip_to_machine[u_info['public-address']]
+            out[machine].add(u_id)
             if 'subordinates' in u_info:
                 for s_id, s_info in u_info['subordinates'].items():
                     if 'public-address' not in s_info:
                         continue
-                    addr = s_info['public-address']
-                    out[addr].add(s_id)
+                    machine = ip_to_machine[s_info['public-address']]
+                    out[machine].add(s_id)
 
-    return out, units
+    return out
 
 
 def set_model(model):
@@ -132,25 +133,29 @@ class CrashCollector(object):
 
     def retrieve_unit_tarballs(self):
         juju_status = yaml.load(open('juju_status.yaml', 'r'))
-        aliases, units = service_unit_addresses(juju_status)
-        if not units:
+        aliases = service_unit_addresses(juju_status)
+        if not aliases:
             # Running against an empty model.
-            print("0 units found. No tarballs to retrieve.")
+            print("0 machines found. No tarballs to retrieve.")
             return
-        for ip, alias_group in aliases.items():
-            any_unit = alias_group.intersection(units).pop()
-            juju_cmd("scp %s:/tmp/juju-dump-%s.tar ." % (any_unit, self.uniq))
+        for machine, alias_group in aliases.items():
+            juju_cmd("scp %s:/tmp/juju-dump-%s.tar ." % (machine, self.uniq))
+            if '/' not in machine:
+                machine += '/baremetal'
+            run_cmd("mkdir -p %s || true" % machine)
             try:
-                shutil.move("juju-dump-%s.tar" % self.uniq, "%s.tar" % ip)
+                run_cmd("tar -pxf juju-dump-%s.tar -C %s" %
+                        (self.uniq, machine))
+                run_cmd("rm juju-dump-%s.tar" % self.uniq)
             except IOError:
                 # If you are running crashdump as a machine is coming
                 # up, or scp fails for some other reason, you won't
                 # have a tarball to move. In that case, skip, and try
                 # fetching the tarball for the next machine.
-                print("Unable to retrieve tarball for %s. Skipping." % ip)
+                print("Unable to retrieve tarball for %s. Skipping." % machine)
                 continue
             for alias in alias_group:
-                os.symlink('%s.tar' % ip, '%s.tar' % alias.replace('/', '_'))
+                os.symlink('%s' % machine, '%s' % alias.replace('/', '_'))
 
     def collect(self):
         juju_status()
