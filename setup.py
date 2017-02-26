@@ -11,10 +11,10 @@ SETUP = {
     'url': 'https://github.com/juju-solutions/jujucrashdump',
     'packages': find_packages(
         exclude=["setup.py"]),
-    'scripts': [
-        'juju-crashdump',
-    ],
-    'install_requires': ['PyYAML']
+    'install_requires': ['PyYAML'],
+    'entry_points': {'console_scripts': [
+        'juju-crashdump = jujucrashdump.crashdump:main'
+    ]}
 }
 
 if __name__ == '__main__':
