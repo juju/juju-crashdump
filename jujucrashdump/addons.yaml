@@ -1,12 +1,12 @@
 ps-mem:
     local: git clone https://github.com/fginther/ps_mem.git
-    remote: sudo ./ps_mem/ps_mem.py > {output}/ps_mem
+    remote: sudo python3 ./ps_mem/ps_mem.py > {output}/ps_mem
 sosreport:
     local: git clone https://github.com/sosreport/sos.git
     remote: sudo ./sos/sosreport --batch --quiet --build --tmp-dir={output}
 debug-layer:
-    local: juju status --format=json | jq -r '.applications | .[] | .units | keys | .[]' | while read unit; do juju run-action $unit debug; done
-    remote: cp /home/ubuntu/debug-*.tar.gz {output}
+    local: juju status --format=json | jq -r '.applications | keys | .[]' | while read app; do juju actions $app 2>/dev/null | grep -qE '^debug *Collect debug data$' && juju status --format=json | jq --arg app $app -r '.applications[$app].units | keys | .[]' >> debug-layer-units ; done;
+    remote: for unit in $(cat debug-layer-units); do sudo juju-run $unit actions/debug; done; cp /home/ubuntu/debug-*.tar.gz {output} || true
 inner:
     local: git clone https://github.com/juju/juju-crashdump.git
     remote: ./juju-crashdump/jujucrashdump/crashdump.py -o {output}

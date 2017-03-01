@@ -9,6 +9,7 @@ import os
 FETCH = 'local'
 RUN = 'remote'
 ADDONS_FILE_PATH = os.path.join(os.path.dirname(__file__), 'addons.yaml')
+FNULL = open(os.devnull, 'w')
 
 
 def do_addons(addons_file_path, enabled_addons, units, uniq):
@@ -60,12 +61,11 @@ def async_commands(command, contexts, timeout=10):
     procs = []
     for context in contexts:
         args = shlex.split(command.format(context))
-        print(args)
-        procs.append(subprocess.Popen(args))
+        procs.append(subprocess.Popen(args, stdout=FNULL, stderr=FNULL))
     for proc in procs:
         value = proc.wait()
         if value != 0:
-            print('Pid %s failed' % proc.pid)
+            print('command %s failed' % command)
 
 
 class CrashdumpAddon(object):
@@ -78,7 +78,8 @@ class CrashdumpAddon(object):
     @tempdir
     def push(self, units, location):
         """This will fetch the command, and push it to the units"""
-        subprocess.check_call(self.fetch, shell=True)
+        subprocess.check_call(self.fetch, shell=True, stdout=FNULL,
+                              stderr=FNULL)
         async_commands('juju scp -- -r . {}:%s' % location, units)
 
     @tempdir
@@ -86,5 +87,4 @@ class CrashdumpAddon(object):
         """This will runt the remote command on the units"""
         remote_cmd = '"cd {location}; %s"' % self.run_cmd.format(**context)
         remote_cmd = remote_cmd.format(**context)
-        print(remote_cmd)
         async_commands('juju ssh {} -- %s' % remote_cmd, units)

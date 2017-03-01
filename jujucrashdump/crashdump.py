@@ -23,7 +23,7 @@ except ImportError:
     APPORT = False
 
 from textwrap import dedent
-from jujucrashdump.addons import ADDONS_FILE_PATH, do_addons
+from jujucrashdump.addons import ADDONS_FILE_PATH, do_addons, FNULL
 
 
 MAX_FILE_SIZE = 5000000  # 5MB max for files
@@ -91,7 +91,7 @@ def set_model(model):
 
 def run_cmd(command):
     try:
-        subprocess.check_call(command, shell=True)
+        subprocess.check_call(command, shell=True, stdout=FNULL, stderr=FNULL)
     except:
         print('Command "%s" failed' % command)
 
