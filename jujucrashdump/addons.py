@@ -28,6 +28,7 @@ def do_addons(addons_file_path, enabled_addons, units, uniq):
         addons[addon].run(units,
                           {'location': push_location, 'output': pull_location})
 
+
 def tempdir(func):
     def temp_function(*args, **kwargs):
         olddir = os.getcwd()
