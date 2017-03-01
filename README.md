@@ -27,6 +27,10 @@ juju crashdump [-h] [-d] [-m MODEL] [-f MAX_FILE_SIZE] [-b BUG]
 <dd>Store the completed crash dump in this dir.</dd>
 <dt>-u UNIQ, --uniq UNIQ</dt>
 <dd>Unique id for this crashdump. We generate a uuid if this is not specified.</dd>
+<dt>-a ADDON, --addon ADDON</dt>
+<dd>Enable the addon with the given name</dd>
+<dt>--addons-file ADDONS_FILE</dt>
+<dd>Use this file for addon definitions</dd>
 </dl>
 
 
