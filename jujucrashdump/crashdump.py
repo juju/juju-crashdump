@@ -89,17 +89,23 @@ def set_model(model):
     os.environ['JUJU_MODEL'] = model
 
 
-def run_cmd(command):
+def run_cmd(command, fatal=False):
     try:
         subprocess.check_call(command, shell=True, stdout=FNULL, stderr=FNULL)
     except:
         print('Command "%s" failed' % command)
+        if fatal:
+            sys.exit(1)
 
 
 def juju_cmd(command):
     command_prefix = 'juju '
     run_cmd(command_prefix + command)
 
+
+def juju_check():
+    run_cmd('juju version', fatal=True)
+    run_cmd('juju switch', fatal=True)
 
 def juju_status():
     juju_cmd('status --format=yaml > juju_status.yaml')
@@ -171,6 +177,7 @@ class CrashCollector(object):
                 os.symlink('%s' % machine, '%s' % alias.replace('/', '_'))
 
     def collect(self):
+        juju_check()
         juju_status()
         juju_debuglog()
         self.run_addons()

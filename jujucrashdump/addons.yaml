@@ -9,4 +9,4 @@ debug-layer:
     remote: for unit in $(cat debug-layer-units); do sudo juju-run $unit actions/debug; done; cp /home/ubuntu/debug-*.tar.gz {output} || true
 inner:
     local: git clone https://github.com/juju/juju-crashdump.git
-    remote: ./juju-crashdump/jujucrashdump/crashdump.py -o {output}
+    remote: PYTHONPATH=juju-crashdump python3 juju-crashdump/jujucrashdump/crashdump.py -o {output}
