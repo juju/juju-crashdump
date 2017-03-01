@@ -6,8 +6,8 @@ import yaml
 import sys
 import os
 
-FETCH = 'local'
-RUN = 'remote'
+LOCAL = 'local'
+REMOTE = 'remote'
 ADDONS_FILE_PATH = os.path.join(os.path.dirname(__file__), 'addons.yaml')
 FNULL = open(os.devnull, 'w')
 
@@ -46,14 +46,14 @@ def load_addons(addons_file_path):
     addons = {}
     for name, info in addon_specs.items():
         try:
-            assert(FETCH in info)
-            assert(RUN in info)
+            assert(LOCAL in info)
+            assert(REMOTE in info)
         except AssertionError:
             print('The addons file: "%s" is malformed, "%s" does not have one'
                   ' of the necessary keys "%s" or "%s"' %
-                  (addons_file_path, name, FETCH, RUN))
+                  (addons_file_path, name, LOCAL, REMOTE))
             sys.exit(1)
-        addons[name] = CrashdumpAddon(name, info[FETCH], info[RUN])
+        addons[name] = CrashdumpAddon(name, info[LOCAL], info[REMOTE])
     return addons
 
 
@@ -62,30 +62,30 @@ def async_commands(command, contexts, timeout=10):
     procs = []
     for context in contexts:
         args = shlex.split(command.format(context))
-        procs.append(subprocess.Popen(args, stdout=FNULL, stderr=FNULL))
+        procs.append(subprocess.Popen(args, stdin=FNULL, stdout=FNULL,
+                                      stderr=FNULL))
     for proc in procs:
-        value = proc.wait()
-        if value != 0:
+        proc.communicate()
+        if proc.returncode != 0:
             print('command %s failed' % command)
 
 
 class CrashdumpAddon(object):
     """An addon to run on the nodes"""
-    def __init__(self, name, fetch, run):
+    def __init__(self, name, local, remote):
         self.name = name
-        self.fetch = fetch
-        self.run_cmd = run
+        self.local = local
+        self.remote = remote
 
     @tempdir
     def push(self, units, location):
         """This will fetch the command, and push it to the units"""
-        subprocess.check_call(self.fetch, shell=True, stdout=FNULL,
+        subprocess.check_call(self.local, shell=True, stdout=FNULL,
                               stderr=FNULL)
         async_commands('juju scp -- -r . {}:%s' % location, units)
 
-    @tempdir
     def run(self, units, context):
         """This will runt the remote command on the units"""
-        remote_cmd = '"cd {location}; %s"' % self.run_cmd.format(**context)
+        remote_cmd = '"cd {location}; %s"' % self.remote.format(**context)
         remote_cmd = remote_cmd.format(**context)
         async_commands('juju ssh {} -- %s' % remote_cmd, units)
