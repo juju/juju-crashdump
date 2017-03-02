@@ -107,6 +107,7 @@ def juju_check():
     run_cmd('juju version', fatal=True)
     run_cmd('juju switch', fatal=True)
 
+
 def juju_status():
     juju_cmd('status --format=yaml > juju_status.yaml')
 
