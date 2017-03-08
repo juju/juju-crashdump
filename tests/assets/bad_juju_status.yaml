@@ -1,0 +1,314 @@
+model:
+  name: default
+  controller: cdoqa_ctrl
+  cloud: maas
+  version: 2.1-rc1
+machines:
+  "0":
+    juju-status:
+      current: started
+      since: 13 Feb 2017 14:50:16Z
+      version: 2.1-rc1
+    dns-name: 10.245.214.1
+    ip-addresses:
+    - 10.245.214.1
+    instance-id: kh3cwn
+    machine-status:
+      current: running
+      message: Deployed
+      since: 13 Feb 2017 14:49:44Z
+    series: xenial
+    containers:
+      0/lxd/0:
+        juju-status:
+          current: started
+          since: 13 Feb 2017 14:51:58Z
+          version: 2.1-rc1
+        dns-name: 10.245.214.2
+        ip-addresses:
+        - 10.245.214.2
+        instance-id: juju-c5c132-0-lxd-0
+        machine-status:
+          current: running
+          message: Container started
+          since: 13 Feb 2017 14:50:56Z
+        series: xenial
+      0/lxd/1:
+        juju-status:
+          current: started
+          since: 13 Feb 2017 14:52:28Z
+          version: 2.1-rc1
+        dns-name: 10.245.214.3
+        ip-addresses:
+        - 10.245.214.3
+        instance-id: juju-c5c132-0-lxd-1
+        machine-status:
+          current: running
+          message: Container started
+          since: 13 Feb 2017 14:51:26Z
+        series: xenial
+        constraints: mem=2048M
+      0/lxd/2:
+        juju-status:
+          current: started
+          since: 13 Feb 2017 14:53:16Z
+          version: 2.1-rc1
+        dns-name: 10.245.214.4
+        ip-addresses:
+        - 10.245.214.4
+        instance-id: juju-c5c132-0-lxd-2
+        machine-status:
+          current: running
+          message: Container started
+          since: 13 Feb 2017 14:51:53Z
+        series: xenial
+        constraints: mem=2048M
+      0/lxd/3:
+        juju-status:
+          current: started
+          since: 13 Feb 2017 14:53:34Z
+          version: 2.1-rc1
+        dns-name: 10.245.214.5
+        ip-addresses:
+        - 10.245.214.5
+        instance-id: juju-c5c132-0-lxd-3
+        machine-status:
+          current: running
+          message: Container started
+          since: 13 Feb 2017 14:52:25Z
+        series: xenial
+      0/lxd/4:
+        juju-status:
+          current: started
+          since: 13 Feb 2017 17:17:31Z
+          version: 2.1-rc1
+        dns-name: 10.245.214.27
+        ip-addresses:
+        - 10.245.214.27
+        instance-id: juju-c5c132-0-lxd-4
+        machine-status:
+          current: running
+          message: Container started
+          since: 13 Feb 2017 17:16:52Z
+        series: xenial
+    hardware: arch=amd64 cores=12 mem=16384M tags=azurill availability-zone=default
+  "1":
+    juju-status:
+      current: started
+      since: 13 Feb 2017 17:29:13Z
+      version: 2.1-rc1
+    dns-name: 10.245.214.28
+    ip-addresses:
+    - 10.245.214.28
+    instance-id: h7kqwq
+    machine-status:
+      current: running
+      message: Deployed
+      since: 13 Feb 2017 17:28:38Z
+    series: xenial
+    hardware: arch=amd64 cores=12 mem=16384M tags=mudkip availability-zone=default
+  "2":
+    juju-status:
+      current: down
+      message: agent is not communicating with the server
+      since: 13 Feb 2017 18:56:25Z
+    instance-id: pending
+    machine-status:
+      current: provisioning error
+      message: 'cannot run instances: cannot run instance: No available machine matches
+        constraints: [(''zone'', [''default'']), (''agent_name'', [''711c5a10-07e8-444b-83d9-703c6ec5c132''])]
+        (resolved to "zone=default")'
+      since: 13 Feb 2017 18:56:25Z
+    series: xenial
+applications:
+  haproxy:
+    charm: cs:haproxy-40
+    series: xenial
+    os: ubuntu
+    charm-origin: jujucharms
+    charm-name: haproxy
+    charm-rev: 40
+    exposed: false
+    application-status:
+      current: unknown
+      since: 13 Feb 2017 14:54:36Z
+    relations:
+      peer:
+      - haproxy
+      reverseproxy:
+      - landscape-server
+    units:
+      haproxy/0:
+        workload-status:
+          current: unknown
+          since: 13 Feb 2017 14:54:36Z
+        juju-status:
+          current: idle
+          since: 13 Feb 2017 21:27:02Z
+          version: 2.1-rc1
+        leader: true
+        machine: 0/lxd/0
+        open-ports:
+        - 80/tcp
+        - 443/tcp
+        - 10000/tcp
+        public-address: 10.245.214.2
+  kubernetes-e2e:
+    charm: cs:~containers/kubernetes-e2e-8
+    series: xenial
+    os: ubuntu
+    charm-origin: jujucharms
+    charm-name: kubernetes-e2e
+    charm-rev: 8
+    exposed: false
+    application-status:
+      current: waiting
+      message: waiting for machine
+      since: 13 Feb 2017 18:55:38Z
+    units:
+      kubernetes-e2e/0:
+        workload-status:
+          current: waiting
+          message: waiting for machine
+          since: 13 Feb 2017 18:55:38Z
+        juju-status:
+          current: allocating
+          since: 13 Feb 2017 18:55:38Z
+        machine: "2"
+  landscape-server:
+    charm: cs:xenial/landscape-server-0
+    series: xenial
+    os: ubuntu
+    charm-origin: jujucharms
+    charm-name: landscape-server
+    charm-rev: 0
+    exposed: false
+    application-status:
+      current: active
+      since: 13 Feb 2017 15:09:11Z
+    relations:
+      amqp:
+      - rabbitmq-server
+      db:
+      - postgresql
+      website:
+      - haproxy
+    units:
+      landscape-server/0:
+        workload-status:
+          current: active
+          since: 13 Feb 2017 15:09:11Z
+        juju-status:
+          current: idle
+          since: 13 Feb 2017 21:29:42Z
+          version: 2.1-rc1
+        leader: true
+        machine: 0/lxd/1
+        public-address: 10.245.214.3
+  magpie:
+    charm: cs:~admcleod/magpie-20
+    series: xenial
+    os: ubuntu
+    charm-origin: jujucharms
+    charm-name: magpie
+    charm-rev: 20
+    exposed: false
+    application-status:
+      current: active
+      message: icmp ok, local hostname ok, dns ok
+      since: 13 Feb 2017 21:26:13Z
+    relations:
+      magpie:
+      - magpie
+    units:
+      magpie/0:
+        workload-status:
+          current: active
+          message: icmp ok, local hostname ok, dns ok
+          since: 13 Feb 2017 21:26:13Z
+        juju-status:
+          current: idle
+          since: 13 Feb 2017 21:26:13Z
+          version: 2.1-rc1
+        leader: true
+        machine: 0/lxd/4
+        public-address: 10.245.214.27
+      magpie/1:
+        workload-status:
+          current: active
+          message: icmp ok, local hostname ok, dns ok
+          since: 13 Feb 2017 21:29:16Z
+        juju-status:
+          current: idle
+          since: 13 Feb 2017 21:29:17Z
+          version: 2.1-rc1
+        machine: "1"
+        public-address: 10.245.214.28
+  postgresql:
+    charm: cs:postgresql-125
+    series: xenial
+    os: ubuntu
+    charm-origin: jujucharms
+    charm-name: postgresql
+    charm-rev: 125
+    exposed: false
+    application-status:
+      current: active
+      message: Live master (9.5.5)
+      since: 13 Feb 2017 21:27:03Z
+    relations:
+      coordinator:
+      - postgresql
+      db-admin:
+      - landscape-server
+      replication:
+      - postgresql
+    units:
+      postgresql/0:
+        workload-status:
+          current: active
+          message: Live master (9.5.5)
+          since: 13 Feb 2017 21:27:03Z
+        juju-status:
+          current: idle
+          since: 13 Feb 2017 21:27:04Z
+          version: 2.1-rc1
+        leader: true
+        machine: 0/lxd/2
+        open-ports:
+        - 5432/tcp
+        public-address: 10.245.214.4
+    version: 9.5.5
+  rabbitmq-server:
+    charm: cs:rabbitmq-server-59
+    series: xenial
+    os: ubuntu
+    charm-origin: jujucharms
+    charm-name: rabbitmq-server
+    charm-rev: 59
+    exposed: false
+    application-status:
+      current: active
+      message: Unit is ready
+      since: 13 Feb 2017 21:27:04Z
+    relations:
+      amqp:
+      - landscape-server
+      cluster:
+      - rabbitmq-server
+    units:
+      rabbitmq-server/0:
+        workload-status:
+          current: active
+          message: Unit is ready
+          since: 13 Feb 2017 21:27:04Z
+        juju-status:
+          current: idle
+          since: 13 Feb 2017 21:27:05Z
+          version: 2.1-rc1
+        leader: true
+        machine: 0/lxd/3
+        open-ports:
+        - 5672/tcp
+        public-address: 10.245.214.5
+    version: 3.5.7
