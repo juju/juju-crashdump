@@ -16,6 +16,7 @@ parts:
   juju-crashdump:
     plugin: python
     python-version: python2
+    build-packages: [lsb-release]
     stage-packages:
       - python-apport
       - jq 
