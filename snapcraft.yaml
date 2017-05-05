@@ -18,7 +18,8 @@ parts:
     python-version: python2
     build-packages: [lsb-release]
     stage-packages:
-      - python-apport 
+      - python-apport
+      - jq 
     python-packages:
       - pyyaml
     source: .

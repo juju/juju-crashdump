@@ -23,6 +23,7 @@ except ImportError:
     APPORT = False
 
 from textwrap import dedent
+from jujucrashdump.addons import ADDONS_FILE_PATH, do_addons, FNULL
 
 
 MAX_FILE_SIZE = 5000000  # 5MB max for files
@@ -45,7 +46,8 @@ DIRECTORIES = [
 
 TAR_CMD = """sudo find {dirs} -mount -type f -size -{max_size}c -o \
 -size {max_size}c 2>/dev/null | sudo tar -pcf /tmp/juju-dump-{uniq}.tar \
---files-from - 2>/dev/null"""
+--files-from - 2>/dev/null; sudo tar --append -f /tmp/juju-dump-{uniq}.tar \
+-C /tmp/{uniq}/addon_output . || true"""
 
 
 def service_unit_addresses(status):
@@ -87,16 +89,23 @@ def set_model(model):
     os.environ['JUJU_MODEL'] = model
 
 
-def run_cmd(command):
+def run_cmd(command, fatal=False):
     try:
-        subprocess.check_call(command, shell=True)
+        subprocess.check_call(command, shell=True, stdout=FNULL, stderr=FNULL)
     except:
         print('Command "%s" failed' % command)
+        if fatal:
+            sys.exit(1)
 
 
 def juju_cmd(command):
     command_prefix = 'juju '
     run_cmd(command_prefix + command)
+
+
+def juju_check():
+    run_cmd('juju version', fatal=True)
+    run_cmd('juju switch', fatal=True)
 
 
 def juju_status():
@@ -110,7 +119,7 @@ def juju_debuglog():
 class CrashCollector(object):
     """A log file collector for juju and charms"""
     def __init__(self, model, max_size, extra_dirs, output_dir=None,
-                 uniq=None):
+                 uniq=None, addons=None, addons_file=None):
         if model:
             set_model(model)
         self.max_size = max_size
@@ -120,6 +129,17 @@ class CrashCollector(object):
         os.chdir(self.tempdir)
         self.uniq = uniq or uuid.uuid4()
         self.output_dir = output_dir or '.'
+        self.addons = addons
+        self.addons_file = addons_file
+
+    def run_addons(self):
+        juju_status = yaml.load(open('juju_status.yaml', 'r'))
+        machines = service_unit_addresses(juju_status).keys()
+        if not machines:
+            return
+        if self.addons_file is None or self.addons is None:
+            return
+        do_addons(self.addons_file, self.addons, machines, self.uniq)
 
     def create_unit_tarballs(self):
         directories = list(DIRECTORIES)
@@ -158,8 +178,10 @@ class CrashCollector(object):
                 os.symlink('%s' % machine, '%s' % alias.replace('/', '_'))
 
     def collect(self):
+        juju_check()
         juju_status()
         juju_debuglog()
+        self.run_addons()
         self.create_unit_tarballs()
         self.retrieve_unit_tarballs()
         tar_file = "juju-crashdump-%s.tar" % self.uniq
@@ -237,6 +259,10 @@ def parse_args():
     parser.add_argument('-s', '--small', action='store_true',
                         help="Make a 'small' crashdump, by skipping the "
                         "contents of /var/lib/juju.")
+    parser.add_argument('-a', '--addon', action='append',
+                        help='Enable the addon with the given name')
+    parser.add_argument('--addons-file',  default=ADDONS_FILE_PATH,
+                        help='Use this file for addon definitions')
     return parser.parse_args()
 
 
@@ -254,7 +280,9 @@ def main():
         max_size=opts.max_file_size,
         extra_dirs=opts.extra_dir,
         output_dir=opts.output_dir,
-        uniq=opts.uniq
+        uniq=opts.uniq,
+        addons=opts.addon,
+        addons_file=opts.addons_file
     )
     filename = collector.collect()
     if opts.bug:

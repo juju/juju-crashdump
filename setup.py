@@ -12,6 +12,7 @@ SETUP = {
     'packages': find_packages(
         exclude=["setup.py"]),
     'install_requires': ['PyYAML'],
+    'package_data': {'': ['*.yaml']},
     'entry_points': {'console_scripts': [
         'juju-crashdump = jujucrashdump.crashdump:main'
     ]}
