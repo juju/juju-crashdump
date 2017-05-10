@@ -11,7 +11,7 @@ confinement: classic
 grade: stable
 apps:
   juju-crashdump:
-    command: juju-crashdump
+    command: bin/juju-crashdump
 parts:
   juju-crashdump:
     plugin: python
