@@ -1,5 +1,5 @@
 name: juju-crashdump
-version: 1.0.0
+version: git
 summary: Gather logs and other debugging info from a Juju model
 description: >
   The 'juju crashdump' plugin eases the collection of logs and
