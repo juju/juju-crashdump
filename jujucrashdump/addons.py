@@ -61,7 +61,8 @@ def async_commands(command, contexts, timeout=45):
     """Run the command concurrently for each given context."""
     procs = []
     for context in contexts:
-        args = shlex.split(('timeout %ds' % timeout) + command.format(context))
+        args = shlex.split(('timeout %ds ' % timeout) +
+                           command.format(context))
         procs.append(subprocess.Popen(args, stdin=FNULL, stdout=FNULL,
                                       stderr=FNULL))
     for proc in procs:
