@@ -89,18 +89,21 @@ def set_model(model):
     os.environ['JUJU_MODEL'] = model
 
 
-def run_cmd(command, fatal=False):
+def run_cmd(command, fatal=False, to_file=None):
     try:
-        subprocess.check_call(command, shell=True, stdout=FNULL, stderr=FNULL)
+        output = subprocess.check_output(command, shell=True, stderr=FNULL)
+        if to_file is not None:
+            with open(to_file, 'wb') as fd:
+                fd.write(output)
     except:
         print('Command "%s" failed' % command)
         if fatal:
             sys.exit(1)
 
 
-def juju_cmd(command):
+def juju_cmd(command, *args, **kwargs):
     command_prefix = 'juju '
-    run_cmd(command_prefix + command)
+    run_cmd(command_prefix + command, *args, **kwargs)
 
 
 def juju_check():
@@ -109,11 +112,11 @@ def juju_check():
 
 
 def juju_status():
-    juju_cmd('status --format=yaml > juju_status.yaml')
+    juju_cmd(' status --format=yaml', to_file='juju_status.yaml')
 
 
 def juju_debuglog():
-    juju_cmd('debug-log --replay --no-tail > debug_log.txt')
+    juju_cmd('debug-log --replay --no-tail', to_file='debug_log.txt')
 
 
 class CrashCollector(object):
