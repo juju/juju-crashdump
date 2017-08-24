@@ -143,7 +143,7 @@ class CrashCollector(object):
         machines = service_unit_addresses(juju_status).keys()
         if not machines:
             return
-        if self.addons_file is None or self.addons is None:
+        if self.addons_file is not None and self.addons is not None:
             return do_addons(self.addons_file, self.addons, machines,
                              self.uniq)
 
