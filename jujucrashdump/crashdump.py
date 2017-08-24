@@ -219,15 +219,13 @@ class CrashCollector(object):
         self.run_addons()
         self.create_unit_tarballs()
         self.retrieve_unit_tarballs()
-        tar_file = "juju-crashdump-%s.tar" % self.uniq
-        run_cmd("tar -pcf %s * 2>/dev/null" % tar_file)
-        run_cmd("xz --force %s" % tar_file)
+        tar_file = "juju-crashdump-%s.tar.xz" % self.uniq
+        run_cmd("tar -pJcf %s * 2>/dev/null" % tar_file)
         os.chdir(self.cwd)
-        compressed_file = tar_file + '.xz'
-        shutil.move(os.path.join(self.tempdir, compressed_file),
+        shutil.move(os.path.join(self.tempdir, tar_file),
                     self.output_dir)
         self.cleanup()
-        return compressed_file
+        return tar_file
 
     def cleanup(self):
         shutil.rmtree(self.tempdir)
