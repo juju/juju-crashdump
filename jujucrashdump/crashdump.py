@@ -207,7 +207,7 @@ class CrashCollector(object):
         pool = multiprocessing.Pool()
         pool.map(
             retrieve_single_unit_tarball,
-            [tuple(self.uniq, key, value) for key, value in aliases.items()]
+            [(self.uniq, key, value) for key, value in aliases.items()]
         )
 
     def collect(self):
