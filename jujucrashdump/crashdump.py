@@ -144,7 +144,8 @@ def juju_debuglog():
 class CrashCollector(object):
     """A log file collector for juju and charms"""
     def __init__(self, model, max_size, extra_dirs, output_dir=None,
-                 uniq=None, addons=None, addons_file=None, exclude=tuple()):
+                 uniq=None, addons=None, addons_file=None, exclude=tuple(),
+                 compression='xz'):
         if model:
             set_model(model)
         self.max_size = max_size
@@ -157,6 +158,7 @@ class CrashCollector(object):
         self.addons = addons
         self.addons_file = addons_file
         self.exclude = exclude
+        self.compression = compression
 
     def run_addons(self):
         juju_status = yaml.load(open('juju_status.yaml', 'r'))
@@ -219,8 +221,8 @@ class CrashCollector(object):
         self.run_addons()
         self.create_unit_tarballs()
         self.retrieve_unit_tarballs()
-        tar_file = "juju-crashdump-%s.tar.xz" % self.uniq
-        run_cmd("tar -pJcf %s * 2>/dev/null" % tar_file)
+        tar_file = "juju-crashdump-%s.tar.%s" % (self.uniq, self.compression)
+        run_cmd("tar -pacf %s * 2>/dev/null" % tar_file)
         os.chdir(self.cwd)
         shutil.move(os.path.join(self.tempdir, tar_file),
                     self.output_dir)
@@ -286,6 +288,8 @@ def parse_args():
                         help='Extra directories to snapshot')
     parser.add_argument('-x', '--exclude', action='append',
                         help='Directories or files to exclude from capture.')
+    parser.add_argument('-c', '--compression', default='xz',
+                        help='The compression type to use for result tarball.')
     parser.add_argument('-o', '--output-dir',
                         help="Store the completed crash dump in this dir.")
     parser.add_argument('-u', '--uniq',
@@ -318,7 +322,8 @@ def main():
         uniq=opts.uniq,
         addons=opts.addon,
         addons_file=opts.addons_file,
-        exclude=opts.exclude
+        exclude=opts.exclude,
+        compression=opts.compression
     )
     filename = collector.collect()
     if opts.bug:
