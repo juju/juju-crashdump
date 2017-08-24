@@ -177,7 +177,7 @@ class CrashCollector(object):
         )
         tar_cmd = TAR_CMD.format(dirs=" ".join(directories),
                                  max_size=self.max_size, uniq=self.uniq)
-        run_cmd("""timeout 30s juju run --all 'sh -c "%s"'""" % tar_cmd)
+        run_cmd("""timeout 45s juju run --all 'sh -c "%s"'""" % tar_cmd)
 
     @staticmethod
     def __retrieve_single_unit_tarball(unique, tuple_input):
