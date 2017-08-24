@@ -5,7 +5,6 @@
 # you also might need to $ sudo apt install python-apport
 
 import argparse
-import functools
 import multiprocessing
 import os
 import shutil
@@ -51,6 +50,7 @@ TAR_CMD = """sudo find {dirs} -mount -type f -size -{max_size}c -o \
 --files-from - 2>/dev/null; sudo tar --append -f /tmp/juju-dump-{uniq}.tar \
 -C /tmp/{uniq}/addon_output . || true"""
 
+
 def retrieve_single_unit_tarball(tuple_input):
     unique, machine, alias_group = tuple_input
     unit_unique = uuid.uuid4()
@@ -70,6 +70,7 @@ def retrieve_single_unit_tarball(tuple_input):
         print("Unable to retrieve tarball for %s. Skipping." % machine)
     for alias in alias_group:
         os.symlink('%s' % machine, '%s' % alias.replace('/', '_'))
+
 
 def service_unit_addresses(status):
     """From a given juju_status.yaml dict return a mapping of
