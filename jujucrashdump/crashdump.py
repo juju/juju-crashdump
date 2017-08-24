@@ -4,12 +4,14 @@
 
 # you also might need to $ sudo apt install python-apport
 
-import os
-import sys
 import argparse
-import tempfile
-import subprocess
+import functools
+import multiprocessing
+import os
 import shutil
+import subprocess
+import sys
+import tempfile
 import uuid
 import yaml
 from collections import defaultdict
@@ -122,7 +124,7 @@ def juju_debuglog():
 class CrashCollector(object):
     """A log file collector for juju and charms"""
     def __init__(self, model, max_size, extra_dirs, output_dir=None,
-                 uniq=None, addons=None, addons_file=None):
+                 uniq=None, addons=None, addons_file=None, exclude=tuple()):
         if model:
             set_model(model)
         self.max_size = max_size
@@ -134,6 +136,7 @@ class CrashCollector(object):
         self.output_dir = output_dir or '.'
         self.addons = addons
         self.addons_file = addons_file
+        self.exclude = exclude
 
     def run_addons(self):
         juju_status = yaml.load(open('juju_status.yaml', 'r'))
@@ -141,8 +144,8 @@ class CrashCollector(object):
         if not machines:
             return
         if self.addons_file is None or self.addons is None:
-            return
-        do_addons(self.addons_file, self.addons, machines, self.uniq)
+            return do_addons(self.addons_file, self.addons, machines,
+                             self.uniq)
 
     def create_unit_tarballs(self):
         directories = list(DIRECTORIES)
@@ -154,6 +157,27 @@ class CrashCollector(object):
                                  max_size=self.max_size, uniq=self.uniq)
         run_cmd("""timeout 30s juju run --all 'sh -c "%s"'""" % tar_cmd)
 
+    @staticmethod
+    def __retrieve_single_unit_tarball(unique, tuple_input):
+        machine, alias_group = tuple_input
+        unit_unique = uuid.uuid4()
+        juju_cmd("scp %s:/tmp/juju-dump-%s.tar %s.tar"
+                 % (machine, unique, unit_unique))
+        if '/' not in machine:
+            machine += '/baremetal'
+        run_cmd("mkdir -p %s || true" % machine)
+        try:
+            run_cmd("tar -pxf %s.tar -C %s" % (unit_unique, machine))
+            run_cmd("rm %s.tar" % unit_unique)
+        except IOError:
+            # If you are running crashdump as a machine is coming
+            # up, or scp fails for some other reason, you won't
+            # have a tarball to move. In that case, skip, and try
+            # fetching the tarball for the next machine.
+            print("Unable to retrieve tarball for %s. Skipping." % machine)
+        for alias in alias_group:
+            os.symlink('%s' % machine, '%s' % alias.replace('/', '_'))
+
     def retrieve_unit_tarballs(self):
         juju_status = yaml.load(open('juju_status.yaml', 'r'))
         aliases = service_unit_addresses(juju_status)
@@ -161,29 +185,16 @@ class CrashCollector(object):
             # Running against an empty model.
             print("0 machines found. No tarballs to retrieve.")
             return
-        for machine, alias_group in aliases.items():
-            juju_cmd("scp %s:/tmp/juju-dump-%s.tar ." % (machine, self.uniq))
-            if '/' not in machine:
-                machine += '/baremetal'
-            run_cmd("mkdir -p %s || true" % machine)
-            try:
-                run_cmd("tar -pxf juju-dump-%s.tar -C %s" %
-                        (self.uniq, machine))
-                run_cmd("rm juju-dump-%s.tar" % self.uniq)
-            except IOError:
-                # If you are running crashdump as a machine is coming
-                # up, or scp fails for some other reason, you won't
-                # have a tarball to move. In that case, skip, and try
-                # fetching the tarball for the next machine.
-                print("Unable to retrieve tarball for %s. Skipping." % machine)
-                continue
-            for alias in alias_group:
-                os.symlink('%s' % machine, '%s' % alias.replace('/', '_'))
+        pool = multiprocessing.Pool()
+        tarball_collector = functools.partial(
+            CrashCollector.__retrieve_single_unit_tarball, self.uniq)
+        pool.map(tarball_collector, aliases.items())
 
     def collect(self):
         juju_check()
         juju_status()
-        juju_debuglog()
+        if 'debug_log.txt' not in self.exclude:
+            juju_debuglog()
         self.run_addons()
         self.create_unit_tarballs()
         self.retrieve_unit_tarballs()
@@ -254,6 +265,8 @@ def parse_args():
                         help='Upload crashdump to the given launchpad bug #')
     parser.add_argument('extra_dir', nargs='*', default=[],
                         help='Extra directories to snapshot')
+    parser.add_argument('-x', '--exclude', action='append',
+                        help='Directories or files to exclude from capture.')
     parser.add_argument('-o', '--output-dir',
                         help="Store the completed crash dump in this dir.")
     parser.add_argument('-u', '--uniq',
@@ -285,7 +298,8 @@ def main():
         output_dir=opts.output_dir,
         uniq=opts.uniq,
         addons=opts.addon,
-        addons_file=opts.addons_file
+        addons_file=opts.addons_file,
+        exclude=opts.exclude
     )
     filename = collector.collect()
     if opts.bug:
