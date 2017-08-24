@@ -51,6 +51,25 @@ TAR_CMD = """sudo find {dirs} -mount -type f -size -{max_size}c -o \
 --files-from - 2>/dev/null; sudo tar --append -f /tmp/juju-dump-{uniq}.tar \
 -C /tmp/{uniq}/addon_output . || true"""
 
+def retrieve_single_unit_tarball(tuple_input):
+    unique, machine, alias_group = tuple_input
+    unit_unique = uuid.uuid4()
+    juju_cmd("scp %s:/tmp/juju-dump-%s.tar %s.tar"
+             % (machine, unique, unit_unique))
+    if '/' not in machine:
+        machine += '/baremetal'
+    run_cmd("mkdir -p %s || true" % machine)
+    try:
+        run_cmd("tar -pxf %s.tar -C %s" % (unit_unique, machine))
+        run_cmd("rm %s.tar" % unit_unique)
+    except IOError:
+        # If you are running crashdump as a machine is coming
+        # up, or scp fails for some other reason, you won't
+        # have a tarball to move. In that case, skip, and try
+        # fetching the tarball for the next machine.
+        print("Unable to retrieve tarball for %s. Skipping." % machine)
+    for alias in alias_group:
+        os.symlink('%s' % machine, '%s' % alias.replace('/', '_'))
 
 def service_unit_addresses(status):
     """From a given juju_status.yaml dict return a mapping of
@@ -186,9 +205,10 @@ class CrashCollector(object):
             print("0 machines found. No tarballs to retrieve.")
             return
         pool = multiprocessing.Pool()
-        tarball_collector = functools.partial(
-            CrashCollector.__retrieve_single_unit_tarball, self.uniq)
-        pool.map(tarball_collector, aliases.items())
+        pool.map(
+            retrieve_single_unit_tarball,
+            [tuple(self.uniq, key, value) for key, value in aliases.items()]
+        )
 
     def collect(self):
         juju_check()
