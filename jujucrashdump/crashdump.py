@@ -144,7 +144,7 @@ def juju_debuglog():
 class CrashCollector(object):
     """A log file collector for juju and charms"""
     def __init__(self, model, max_size, extra_dirs, output_dir=None,
-                 uniq=None, addons=None, addons_file=None, exclude=tuple(),
+                 uniq=None, addons=None, addons_file=None, exclude=None,
                  compression='xz'):
         if model:
             set_model(model)
@@ -157,6 +157,8 @@ class CrashCollector(object):
         self.output_dir = output_dir or '.'
         self.addons = addons
         self.addons_file = addons_file
+        if exclude is None:
+            exclude = tuple()
         self.exclude = exclude
         self.compression = compression
 
