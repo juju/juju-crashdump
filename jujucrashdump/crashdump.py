@@ -30,6 +30,7 @@ from jujucrashdump.addons import ADDONS_FILE_PATH, do_addons, FNULL
 MAX_FILE_SIZE = 5000000  # 5MB max for files
 DIRECTORIES = [
     # '/var/lib/juju',  # Added below, if --small not passed.
+    '/run/cloud-init',
     '/var/log',
     '/etc/ceph',
     '/etc/cinder',
