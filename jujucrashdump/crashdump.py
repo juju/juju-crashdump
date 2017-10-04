@@ -30,8 +30,7 @@ from jujucrashdump.addons import ADDONS_FILE_PATH, do_addons, FNULL
 MAX_FILE_SIZE = 5000000  # 5MB max for files
 DIRECTORIES = [
     # '/var/lib/juju',  # Added below, if --small not passed.
-    '/run/cloud-init',
-    '/var/log',
+    '/etc/alternatives',
     '/etc/ceph',
     '/etc/cinder',
     '/etc/glance',
@@ -41,9 +40,12 @@ DIRECTORIES = [
     '/etc/quantum',
     '/etc/swift',
     '/opt/nedge/var/log',
+    '/run/cloud-init',
     '/usr/share/lxc/config',
+    '/var/lib/charm',
     '/var/lib/libvirt/filesystems/plumgrid-data/log',
     '/var/lib/libvirt/filesystems/plumgrid/var/log',
+    '/var/log',
 ]
 
 TAR_CMD = """sudo find {dirs} -mount -type f -size -{max_size}c -o \
