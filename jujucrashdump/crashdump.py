@@ -121,7 +121,7 @@ def run_cmd(command, fatal=False, to_file=None):
         if to_file is not None:
             with open(to_file, 'wb') as fd:
                 fd.write(output)
-    except:
+    except subprocess.CalledProcessError:
         print('Command "%s" failed' % command)
         if fatal:
             sys.exit(1)
