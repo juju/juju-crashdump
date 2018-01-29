@@ -333,7 +333,8 @@ def main():
         addons=opts.addon,
         addons_file=opts.addons_file,
         exclude=opts.exclude,
-        compression=opts.compression
+        compression=opts.compression,
+        timeout=opts.timeout,
     )
     filename = collector.collect()
     if opts.bug:
