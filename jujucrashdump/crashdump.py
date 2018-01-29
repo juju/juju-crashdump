@@ -149,7 +149,7 @@ class CrashCollector(object):
     """A log file collector for juju and charms"""
     def __init__(self, model, max_size, extra_dirs, output_dir=None,
                  uniq=None, addons=None, addons_file=None, exclude=None,
-                 compression='xz'):
+                 compression='xz', timeout=45):
         if model:
             set_model(model)
         self.max_size = max_size
@@ -165,6 +165,7 @@ class CrashCollector(object):
             exclude = tuple()
         self.exclude = exclude
         self.compression = compression
+        self.timeout = timeout
 
     def run_addons(self):
         juju_status = yaml.load(open('juju_status.yaml', 'r'))
@@ -183,7 +184,8 @@ class CrashCollector(object):
         )
         tar_cmd = TAR_CMD.format(dirs=" ".join(directories),
                                  max_size=self.max_size, uniq=self.uniq)
-        run_cmd("""timeout 45s juju run --all 'sh -c "%s"'""" % tar_cmd)
+        run_cmd("""timeout %ds juju run --all 'sh -c "%s"'""" % (
+            self.timeout, tar_cmd))
 
     @staticmethod
     def __retrieve_single_unit_tarball(unique, tuple_input):
@@ -306,6 +308,8 @@ def parse_args():
                         "contents of /var/lib/juju.")
     parser.add_argument('-a', '--addon', action='append',
                         help='Enable the addon with the given name')
+    parser.add_argument('-t', '--timeout', type=int, default='45',
+                        help='Timeout in seconds for creating unit tarballs.')
     parser.add_argument('--addons-file',  default=ADDONS_FILE_PATH,
                         help='Use this file for addon definitions')
     return parser.parse_args()
