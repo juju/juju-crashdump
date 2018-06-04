@@ -35,6 +35,7 @@ DIRECTORIES = [
     '/etc/cinder',
     '/etc/glance',
     '/etc/keystone',
+    '/etc/netplan',
     '/etc/network',
     '/etc/neutron',
     '/etc/nova',
