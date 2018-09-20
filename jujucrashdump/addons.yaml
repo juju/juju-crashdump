@@ -10,6 +10,3 @@ debug-layer:
 inner:
     local: git clone https://github.com/juju/juju-crashdump.git
     remote: PYTHONPATH=juju-crashdump python3 juju-crashdump/jujucrashdump/crashdump.py -o {output} || true
-listening:
-    local: /bin/true
-    remote: sudo netstat -taupn | grep LISTEN > {output}/listening.txt

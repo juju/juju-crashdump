@@ -52,8 +52,10 @@ DIRECTORIES = [
 
 TAR_CMD = """sudo find {dirs} -mount -type f -size -{max_size}c -o \
 -size {max_size}c 2>/dev/null | sudo tar -pcf /tmp/juju-dump-{uniq}.tar \
---files-from - 2>/dev/null; sudo tar --append -f /tmp/juju-dump-{uniq}.tar \
--C /tmp/{uniq}/addon_output . || true"""
+--files-from - 2>/dev/null; sudo netstat -taupn | grep LISTEN 2>/dev/null > \
+/tmp/listening.txt && sudo tar --append -f /tmp/juju-dump-{uniq}.tar \
+-C /tmp listening.txt 2>/dev/null; sudo tar --append \
+-f /tmp/juju-dump-{uniq}.tar -C /tmp/{uniq}/addon_output . || true"""
 
 
 def retrieve_single_unit_tarball(tuple_input):
