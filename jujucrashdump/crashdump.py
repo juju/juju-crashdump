@@ -53,6 +53,7 @@ DIRECTORIES = [
 TAR_CMD = """sudo find {dirs} -mount -type f -size -{max_size}c -o \
 -size {max_size}c 2>/dev/null | sudo tar -pcf /tmp/juju-dump-{uniq}.tar \
 --files-from - 2>/dev/null; sudo tar --append -f /tmp/juju-dump-{uniq}.tar \
+-C /tmp/{uniq}/cmd_output .; sudo tar --append -f /tmp/juju-dump-{uniq}.tar \
 -C /tmp/{uniq}/addon_output . || true"""
 
 
@@ -177,6 +178,14 @@ class CrashCollector(object):
             return do_addons(self.addons_file, self.addons, machines,
                              self.uniq)
 
+    def run_listening(self):
+        pull_location = "/tmp/{uniq}/cmd_output".format(uniq=self.uniq)
+        run_cmd('juju run --all "mkdir -p %s"' % pull_location)
+        listening_cmd = """sudo netstat -taupn | grep LISTEN 2>/dev/null > \
+{pull_location}/listening.txt || true""".format(pull_location=pull_location)
+        run_cmd("""timeout %ds juju run --all 'sh -c "%s"'""" % (
+            self.timeout, listening_cmd))
+
     def create_unit_tarballs(self):
         directories = list(DIRECTORIES)
         directories.extend(self.extra_dirs)
@@ -228,6 +237,7 @@ class CrashCollector(object):
         if 'debug_log.txt' not in self.exclude:
             juju_debuglog()
         self.run_addons()
+        self.run_listening()
         self.create_unit_tarballs()
         self.retrieve_unit_tarballs()
         tar_file = "juju-crashdump-%s.tar.%s" % (self.uniq, self.compression)
