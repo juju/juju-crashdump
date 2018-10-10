@@ -191,7 +191,8 @@ class CrashCollector(object):
                                                       service=service)
             self._run_all('mkdir -p {logdir};'
                           'journalctl -u {service} > {logfile};'
-                          '[ $(wc -c < {logfile}) = 17 ] && rm {logfile};'
+                          '[ "$(head -1 {logfile})" = "-- No entries --" ]'
+                          ' && rm {logfile};'
                           'true'.format(logdir=logdir,
                                         logfile=logfile,
                                         service=service))
