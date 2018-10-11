@@ -50,12 +50,6 @@ DIRECTORIES = [
     '/var/log',
 ]
 
-TAR_CMD = """sudo find {dirs} -mount -type f -size -{max_size}c -o \
--size {max_size}c 2>/dev/null | sudo tar -pcf /tmp/juju-dump-{uniq}.tar \
---files-from - 2>/dev/null; sudo tar --append -f /tmp/juju-dump-{uniq}.tar \
--C /tmp/{uniq}/cmd_output .; sudo tar --append -f /tmp/juju-dump-{uniq}.tar \
--C /tmp/{uniq}/addon_output . || true"""
-
 
 def retrieve_single_unit_tarball(tuple_input):
     unique, machine, alias_group = tuple_input
@@ -151,7 +145,7 @@ class CrashCollector(object):
     """A log file collector for juju and charms"""
     def __init__(self, model, max_size, extra_dirs, output_dir=None,
                  uniq=None, addons=None, addons_file=None, exclude=None,
-                 compression='xz', timeout=45):
+                 compression='xz', timeout=45, journalctl=None):
         if model:
             set_model(model)
         self.max_size = max_size
@@ -168,6 +162,11 @@ class CrashCollector(object):
         self.exclude = exclude
         self.compression = compression
         self.timeout = timeout
+        self.journalctl = journalctl
+
+    def _run_all(self, cmd):
+        run_cmd("timeout %ds juju run --all -- sh -c '%s'" % (
+            self.timeout, cmd))
 
     def run_addons(self):
         juju_status = yaml.load(open('juju_status.yaml', 'r'))
@@ -180,11 +179,23 @@ class CrashCollector(object):
 
     def run_listening(self):
         pull_location = "/tmp/{uniq}/cmd_output".format(uniq=self.uniq)
-        run_cmd('juju run --all "mkdir -p %s"' % pull_location)
-        listening_cmd = """sudo netstat -taupn | grep LISTEN 2>/dev/null > \
-{pull_location}/listening.txt || true""".format(pull_location=pull_location)
-        run_cmd("""timeout %ds juju run --all 'sh -c "%s"'""" % (
-            self.timeout, listening_cmd))
+        self._run_all('mkdir -p {pull_location};'
+                      'sudo netstat -taupn | grep LISTEN 2>/dev/null'
+                      ' > {pull_location}/listening.txt || true'
+                      ''.format(pull_location=pull_location))
+
+    def run_journalctl(self):
+        for service in self.journalctl or []:
+            logdir = '/tmp/{uniq}/journalctl'.format(uniq=self.uniq)
+            logfile = '{logdir}/{service}.log'.format(logdir=logdir,
+                                                      service=service)
+            self._run_all('mkdir -p {logdir};'
+                          'journalctl -u {service} > {logfile};'
+                          '[ "$(head -1 {logfile})" = "-- No entries --" ]'
+                          ' && rm {logfile};'
+                          'true'.format(logdir=logdir,
+                                        logfile=logfile,
+                                        service=service))
 
     def create_unit_tarballs(self):
         directories = list(DIRECTORIES)
@@ -192,10 +203,28 @@ class CrashCollector(object):
         directories.extend(
             ['/var/lib/lxd/containers/*/rootfs' + item for item in directories]
         )
-        tar_cmd = TAR_CMD.format(dirs=" ".join(directories),
-                                 max_size=self.max_size, uniq=self.uniq)
-        run_cmd("""timeout %ds juju run --all 'sh -c "%s"'""" % (
-            self.timeout, tar_cmd))
+
+        def _append(parent, incl):
+            return (
+                "sudo tar --append -f /tmp/juju-dump-{uniq}.tar -C "
+                "/tmp/{uniq}/{parent} {incl} || true".format(uniq=self.uniq,
+                                                             parent=parent,
+                                                             incl=incl)
+            )
+
+        tar_cmd = (
+            "sudo find {dirs} -mount -type f -size -{max_size}c -o -size "
+            "{max_size}c 2>/dev/null | sudo tar -pcf /tmp/juju-dump-{uniq}.tar"
+            " --files-from - 2>/dev/null"
+        ).format(dirs=" ".join(directories),
+                 max_size=self.max_size,
+                 uniq=self.uniq)
+        self._run_all(';'.join([
+            tar_cmd,
+            _append("cmd_output", "."),
+            _append("", "journalctl"),
+            _append("addon_output", "."),
+        ]))
 
     @staticmethod
     def __retrieve_single_unit_tarball(unique, tuple_input):
@@ -238,6 +267,7 @@ class CrashCollector(object):
             juju_debuglog()
         self.run_addons()
         self.run_listening()
+        self.run_journalctl()
         self.create_unit_tarballs()
         self.retrieve_unit_tarballs()
         tar_file = "juju-crashdump-%s.tar.%s" % (self.uniq, self.compression)
@@ -323,6 +353,9 @@ def parse_args():
                         help='Timeout in seconds for creating unit tarballs.')
     parser.add_argument('--addons-file',  default=ADDONS_FILE_PATH,
                         help='Use this file for addon definitions')
+    parser.add_argument('-j', '--journalctl', action='append',
+                        help='Collect the journalctl logs for the systemd unit'
+                             ' with the given name')
     return parser.parse_args()
 
 
@@ -346,6 +379,7 @@ def main():
         exclude=opts.exclude,
         compression=opts.compression,
         timeout=opts.timeout,
+        journalctl=opts.journalctl,
     )
     filename = collector.collect()
     if opts.bug:
