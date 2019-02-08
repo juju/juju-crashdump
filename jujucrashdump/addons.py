@@ -5,6 +5,7 @@ import shlex
 import yaml
 import sys
 import os
+import glob
 
 LOCAL = 'local'
 REMOTE = 'remote'
@@ -83,7 +84,8 @@ class CrashdumpAddon(object):
         """This will fetch the command, and push it to the units"""
         subprocess.check_call(self.local, shell=True, stdout=FNULL,
                               stderr=FNULL)
-        async_commands('juju scp -- -r . {}:%s' % location, units)
+        files = ' '.join(glob.glob('*'))
+        async_commands('juju scp -- -r  %s {}:%s' % (files, location), units)
 
     def run(self, units, context):
         """This will runt the remote command on the units"""
