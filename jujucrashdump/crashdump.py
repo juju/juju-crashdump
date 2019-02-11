@@ -366,7 +366,9 @@ def main():
               "You must 'apt install' apport to use the 'bug' option. "
               "Aborting run.")
         return
-    if not opts.small:
+    if opts.small:
+        DIRECTORIES.append('/var/lib/juju/agents')
+    else:
         DIRECTORIES.append('/var/lib/juju')
     collector = CrashCollector(
         model=opts.model,
