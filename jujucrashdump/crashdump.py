@@ -351,7 +351,7 @@ def parse_args():
                         help='Enable the addon with the given name')
     parser.add_argument('-t', '--timeout', type=int, default='45',
                         help='Timeout in seconds for creating unit tarballs.')
-    parser.add_argument('--addons-file',  default=ADDONS_FILE_PATH,
+    parser.add_argument('--addons-file',  action='append',
                         help='Use this file for addon definitions')
     parser.add_argument('-j', '--journalctl', action='append',
                         help='Collect the journalctl logs for the systemd unit'
@@ -370,6 +370,9 @@ def main():
         DIRECTORIES.append('/var/lib/juju/agents')
     else:
         DIRECTORIES.append('/var/lib/juju')
+    # We want to load the default addons first, and give the
+    # option to overwrite them with newer addons if present.
+    opts.addons_file.insert(0, ADDONS_FILE_PATH)
     collector = CrashCollector(
         model=opts.model,
         max_size=opts.max_file_size,

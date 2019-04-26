@@ -16,7 +16,9 @@ FNULL = open(os.devnull, 'w')
 def do_addons(addons_file_path, enabled_addons, units, uniq):
     push_location = '/tmp/{uniq}/addons'.format(uniq=uniq)
     pull_location = '/tmp/{uniq}/addon_output'.format(uniq=uniq)
-    addons = load_addons(addons_file_path)
+    addons = {}
+    for addon_file in addons_file_path:
+        addons.update(load_addons(addon_file))
     if enabled_addons:
         async_commands('juju ssh {} "mkdir -p %s"' % push_location, units)
         async_commands('juju ssh {} "mkdir -p %s"' % pull_location, units)
