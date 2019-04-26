@@ -141,6 +141,18 @@ def juju_debuglog():
     juju_cmd('debug-log --replay --no-tail', to_file='debug_log.txt')
 
 
+def juju_model_defaults():
+    juju_cmd('model-config --format=yaml', to_file='model_config.yaml')
+
+
+def juju_storage():
+    juju_cmd('storage --format=yaml', to_file='storage.yaml')
+
+
+def juju_storage_pools():
+    juju_cmd('storage-pools --format=yaml', to_file='storage_pools.yaml')
+
+
 class CrashCollector(object):
     """A log file collector for juju and charms"""
     def __init__(self, model, max_size, extra_dirs, output_dir=None,
@@ -265,6 +277,12 @@ class CrashCollector(object):
         juju_status()
         if 'debug_log.txt' not in self.exclude:
             juju_debuglog()
+        if 'model_config.yaml' not in self.exclude:
+            juju_model_defaults()
+        if 'storage.yaml' not in self.exclude:
+            juju_storage()
+        if 'storage_pools.yaml' not in self.exclude:
+            juju_storage_pools()
         self.run_addons()
         self.run_listening()
         self.run_journalctl()
