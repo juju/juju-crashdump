@@ -388,6 +388,8 @@ def main():
         DIRECTORIES.append('/var/lib/juju/agents')
     else:
         DIRECTORIES.append('/var/lib/juju')
+    if not opts.addons_file:
+        opts.addons_file = []
     # We want to load the default addons first, and give the
     # option to overwrite them with newer addons if present.
     opts.addons_file.insert(0, ADDONS_FILE_PATH)
