@@ -370,7 +370,7 @@ def parse_args():
     parser.add_argument('-t', '--timeout', type=int, default='45',
                         help='Timeout in seconds for creating unit tarballs.')
     parser.add_argument('--addons-file',  action='append',
-                        help='Use this file for addon definitions')
+                        help='Use this file for addon definitions', default=[])
     parser.add_argument('-j', '--journalctl', action='append',
                         help='Collect the journalctl logs for the systemd unit'
                              ' with the given name')
