@@ -384,9 +384,7 @@ def main():
               "You must 'apt install' apport to use the 'bug' option. "
               "Aborting run.")
         return
-    if opts.small:
-        DIRECTORIES.append('/var/lib/juju/agents')
-    else:
+    if not opts.small:
         DIRECTORIES.append('/var/lib/juju')
     if not opts.addons_file:
         opts.addons_file = []
