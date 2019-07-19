@@ -48,6 +48,8 @@ DIRECTORIES = [
     '/var/lib/libvirt/filesystems/plumgrid-data/log',
     '/var/lib/libvirt/filesystems/plumgrid/var/log',
     '/var/log',
+    # /root/curtin-install-cfg.yaml /root/curtin-install.log
+    '/root',
 ]
 
 
