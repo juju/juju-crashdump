@@ -33,6 +33,7 @@ DIRECTORIES = [
     '/etc/alternatives',
     '/etc/ceph',
     '/etc/cinder',
+    '/etc/cloud',
     '/etc/glance',
     '/etc/keystone',
     '/etc/netplan',
@@ -47,6 +48,7 @@ DIRECTORIES = [
     '/var/lib/charm',
     '/var/lib/libvirt/filesystems/plumgrid-data/log',
     '/var/lib/libvirt/filesystems/plumgrid/var/log',
+    '/var/lib/cloud/seed',
     '/var/log',
 ]
 
