@@ -13,6 +13,7 @@ import sys
 import tempfile
 import uuid
 import yaml
+import concurrent.futures
 from collections import defaultdict
 from os.path import expanduser
 try:
@@ -52,12 +53,20 @@ DIRECTORIES = [
     '/var/log',
 ]
 
+SSH_PARM = ' -o StrictHostKeyChecking=no\
+ -i ~/.local/share/juju/ssh/juju_id_rsa'
+
+SSH_CMD = 'ssh' + SSH_PARM
+SCP_CMD = 'scp' + SSH_PARM
+
 
 def retrieve_single_unit_tarball(tuple_input):
-    unique, machine, alias_group = tuple_input
+    unique, machine, alias_group, all_machines = tuple_input
     unit_unique = uuid.uuid4()
-    juju_cmd("scp %s:/tmp/juju-dump-%s.tar %s.tar"
-             % (machine, unique, unit_unique))
+    for ip in all_machines[machine]:
+        if run_cmd("%s %s:/tmp/juju-dump-%s.tar %s.tar"
+                   % (SCP_CMD, ip, unique, unit_unique)):
+            break
     if '/' not in machine:
         machine += '/baremetal'
     run_cmd("mkdir -p %s || true" % machine)
@@ -123,6 +132,8 @@ def run_cmd(command, fatal=False, to_file=None):
         print('Command "%s" failed' % command)
         if fatal:
             sys.exit(1)
+        return False
+    return True
 
 
 def juju_cmd(command, *args, **kwargs):
@@ -155,6 +166,15 @@ def juju_storage_pools():
     juju_cmd('storage-pools --format=yaml', to_file='storage_pools.yaml')
 
 
+def run_ssh(host, timeout, ssh_cmd, cmd):
+    # Each host can have several interfaces and IP addresses.
+    # This cycles through them and uses the first working.
+    for ip in host:
+        if run_cmd("timeout {}s {} {} sudo '{}'".format(
+                   timeout, ssh_cmd, ip, cmd)):
+            break
+
+
 class CrashCollector(object):
     """A log file collector for juju and charms"""
     def __init__(self, model, max_size, extra_dirs, output_dir=None,
@@ -178,12 +198,27 @@ class CrashCollector(object):
         self.timeout = timeout
         self.journalctl = journalctl
 
+    def get_all(self):
+        machines = {}
+        juju_status = yaml.load(open('juju_status.yaml', 'r'),
+                                Loader=yaml.FullLoader)
+        for machine, machine_data in juju_status['machines'].tems():
+            machines[machine] = machine_data['ip-addresses']
+            if 'containers' in juju_status['machines'][machine]:
+                containers = juju_status['machines'][machine]['containers']
+                for container, container_data in containers.items():
+                    machines[container] = container_data['ip-addresses']
+        return machines
+
     def _run_all(self, cmd):
-        run_cmd("timeout %ds juju run --all -- sh -c '%s'" % (
-            self.timeout, cmd))
+        all_machines = self.get_all()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            [executor.submit(run_ssh, ips, self.timeout, SSH_CMD, cmd)
+             for _, ips in all_machines.items()]
 
     def run_addons(self):
-        juju_status = yaml.load(open('juju_status.yaml', 'r'))
+        juju_status = yaml.load(open('juju_status.yaml', 'r'),
+                                Loader=yaml.FullLoader)
         machines = service_unit_addresses(juju_status).keys()
         if not machines:
             return
@@ -195,7 +230,7 @@ class CrashCollector(object):
         pull_location = "/tmp/{uniq}/cmd_output".format(uniq=self.uniq)
         self._run_all('mkdir -p {pull_location};'
                       'sudo netstat -taupn | grep LISTEN 2>/dev/null'
-                      ' > {pull_location}/listening.txt || true'
+                      ' | sudo tee {pull_location}/listening.txt || true'
                       ''.format(pull_location=pull_location))
 
     def run_journalctl(self):
@@ -240,29 +275,10 @@ class CrashCollector(object):
             _append("addon_output", "."),
         ]))
 
-    @staticmethod
-    def __retrieve_single_unit_tarball(unique, tuple_input):
-        machine, alias_group = tuple_input
-        unit_unique = uuid.uuid4()
-        juju_cmd("scp %s:/tmp/juju-dump-%s.tar %s.tar"
-                 % (machine, unique, unit_unique))
-        if '/' not in machine:
-            machine += '/baremetal'
-        run_cmd("mkdir -p %s || true" % machine)
-        try:
-            run_cmd("tar -pxf %s.tar -C %s" % (unit_unique, machine))
-            run_cmd("rm %s.tar" % unit_unique)
-        except IOError:
-            # If you are running crashdump as a machine is coming
-            # up, or scp fails for some other reason, you won't
-            # have a tarball to move. In that case, skip, and try
-            # fetching the tarball for the next machine.
-            print("Unable to retrieve tarball for %s. Skipping." % machine)
-        for alias in alias_group:
-            os.symlink('%s' % machine, '%s' % alias.replace('/', '_'))
-
     def retrieve_unit_tarballs(self):
-        juju_status = yaml.load(open('juju_status.yaml', 'r'))
+        all_machines = self.get_all()
+        juju_status = yaml.load(open('juju_status.yaml', 'r'),
+                                Loader=yaml.FullLoader)
         aliases = service_unit_addresses(juju_status)
         if not aliases:
             # Running against an empty model.
@@ -271,7 +287,8 @@ class CrashCollector(object):
         pool = multiprocessing.Pool()
         pool.map(
             retrieve_single_unit_tarball,
-            [(self.uniq, key, value) for key, value in aliases.items()]
+            [(self.uniq, key, value, all_machines)
+             for key, value in aliases.items()]
         )
 
     def collect(self):
@@ -349,7 +366,7 @@ def parse_args():
                         help='Output a short description of the plugin')
     parser.add_argument('-m', '--model', default=None,
                         help='Model to act on')
-    parser.add_argument('-f', '--max-file-size',  default=MAX_FILE_SIZE,
+    parser.add_argument('-f', '--max-file-size', default=MAX_FILE_SIZE,
                         help='The max file size (bytes) for included files')
     parser.add_argument('-b', '--bug', default=None,
                         help='Upload crashdump to the given launchpad bug #')
@@ -371,7 +388,7 @@ def parse_args():
                         help='Enable the addon with the given name')
     parser.add_argument('-t', '--timeout', type=int, default='45',
                         help='Timeout in seconds for creating unit tarballs.')
-    parser.add_argument('--addons-file',  action='append',
+    parser.add_argument('--addons-file', action='append',
                         help='Use this file for addon definitions', default=[])
     parser.add_argument('-j', '--journalctl', action='append',
                         help='Collect the journalctl logs for the systemd unit'
