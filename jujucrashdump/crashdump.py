@@ -202,7 +202,7 @@ class CrashCollector(object):
         machines = {}
         juju_status = yaml.load(open('juju_status.yaml', 'r'),
                                 Loader=yaml.FullLoader)
-        for machine, machine_data in juju_status['machines'].tems():
+        for machine, machine_data in juju_status['machines'].items():
             machines[machine] = machine_data['ip-addresses']
             if 'containers' in juju_status['machines'][machine]:
                 containers = juju_status['machines'][machine]['containers']
