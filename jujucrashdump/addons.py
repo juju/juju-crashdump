@@ -45,7 +45,7 @@ def tempdir(func):
 
 def load_addons(addons_file_path):
     with open(addons_file_path) as addons_file:
-        addon_specs = yaml.load(addons_file)
+        addon_specs = yaml.safe_load(addons_file)
     addons = {}
     for name, info in addon_specs.items():
         try:

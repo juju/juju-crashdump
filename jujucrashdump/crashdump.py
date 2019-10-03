@@ -64,7 +64,7 @@ def retrieve_single_unit_tarball(tuple_input):
     unique, machine, alias_group, all_machines = tuple_input
     unit_unique = uuid.uuid4()
     for ip in all_machines[machine]:
-        if run_cmd("%s %s:/tmp/juju-dump-%s.tar %s.tar"
+        if run_cmd("%s ubuntu@%s:/tmp/juju-dump-%s.tar %s.tar"
                    % (SCP_CMD, ip, unique, unit_unique)):
             break
     if '/' not in machine:
@@ -170,7 +170,7 @@ def run_ssh(host, timeout, ssh_cmd, cmd):
     # Each host can have several interfaces and IP addresses.
     # This cycles through them and uses the first working.
     for ip in host:
-        if run_cmd("timeout {}s {} {} sudo '{}'".format(
+        if run_cmd("timeout {}s {} ubuntu@{} sudo '{}'".format(
                    timeout, ssh_cmd, ip, cmd)):
             break
 
