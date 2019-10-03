@@ -9,6 +9,7 @@ description: >
   access to the Juju model.
 confinement: classic
 grade: stable
+base: core18
 apps:
   juju-crashdump:
     command: bin/juju-crashdump
@@ -19,7 +20,7 @@ parts:
     build-packages: [lsb-release]
     stage-packages:
       - python-apport
-      - jq 
+      - jq
     python-packages:
       - pyyaml
     source: .
