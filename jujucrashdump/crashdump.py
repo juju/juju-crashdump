@@ -207,7 +207,13 @@ class CrashCollector(object):
             if 'containers' in juju_status['machines'][machine]:
                 containers = juju_status['machines'][machine]['containers']
                 for container, container_data in containers.items():
-                    machines[container] = container_data['ip-addresses']
+                    try:
+                        machines[container] = container_data['ip-addresses']
+                    except KeyError:
+                        # Sometimes containers don't have ip-addresses, for
+                        # example, when they are pending and haven't been
+                        # full brought up yet.
+                        pass
         return machines
 
     def _run_all(self, cmd):
