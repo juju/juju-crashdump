@@ -270,9 +270,12 @@ class CrashCollector(object):
         tar_cmd = (
             "sudo find {dirs} -mount -type f -size -{max_size}c -o -size "
             "{max_size}c 2>/dev/null | sudo tar -pcf /tmp/juju-dump-{uniq}.tar"
+            "{excludes}"
             " --files-from - 2>/dev/null"
         ).format(dirs=" ".join(directories),
                  max_size=self.max_size,
+                 excludes=''.join(
+                     [' --exclude {}'.format(x) for x in self.exclude]),
                  uniq=self.uniq)
         self._run_all(';'.join([
             tar_cmd,
