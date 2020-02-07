@@ -59,3 +59,19 @@ class TestCrashCollector(utils.BaseTestCase):
             '-C /tmp/fake-uuid/ journalctl || true;'
             'sudo tar --append -f /tmp/juju-dump-fake-uuid.tar '
             '-C /tmp/fake-uuid/addon_output . || true')
+        self._run_all.reset_mock()
+        self.target.exclude = ('exc0', 'exc1')
+        self.target.create_unit_tarballs()
+        self._run_all.assert_called_once_with(
+            'sudo find dir extra_dir /var/lib/lxd/containers/*/rootfsdir '
+            '/var/lib/lxd/containers/*/rootfsextra_dir -mount -type f '
+            '-size -42c -o -size 42c 2>/dev/null | '
+            'sudo tar -pcf /tmp/juju-dump-fake-uuid.tar '
+            '--exclude exc0 --exclude exc1 '
+            '--files-from - 2>/dev/null;'
+            'sudo tar --append -f /tmp/juju-dump-fake-uuid.tar '
+            '-C /tmp/fake-uuid/cmd_output . || true;'
+            'sudo tar --append -f /tmp/juju-dump-fake-uuid.tar '
+            '-C /tmp/fake-uuid/ journalctl || true;'
+            'sudo tar --append -f /tmp/juju-dump-fake-uuid.tar '
+            '-C /tmp/fake-uuid/addon_output . || true')
