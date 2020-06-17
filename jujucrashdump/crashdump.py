@@ -43,6 +43,8 @@ DIRECTORIES = [
     '/etc/nova',
     '/etc/quantum',
     '/etc/swift',
+    '/etc/udev/rules.d',
+    '/lib/udev/rules.d',
     '/opt/nedge/var/log',
     '/run/cloud-init',
     '/usr/share/lxc/config',
