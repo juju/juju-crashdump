@@ -32,10 +32,12 @@ MAX_FILE_SIZE = 5000000  # 5MB max for files
 DIRECTORIES = [
     # '/var/lib/juju',  # Added below, if --small not passed.
     '/etc/alternatives',
+    '/etc/ceilometer',
     '/etc/ceph',
     '/etc/cinder',
     '/etc/cloud',
     '/etc/glance',
+    '/etc/gnocchi',
     '/etc/keystone',
     '/etc/netplan',
     '/etc/network',
