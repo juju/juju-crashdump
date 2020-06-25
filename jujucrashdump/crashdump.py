@@ -211,7 +211,7 @@ class CrashCollector(object):
                 machines[machine] = machine_data['ip-addresses']
             except KeyError:
                 # A machine in allocating may not have an IP yet.
-                pass
+                continue
             if 'containers' in juju_status['machines'][machine]:
                 containers = juju_status['machines'][machine]['containers']
                 for container, container_data in containers.items():
