@@ -6,6 +6,7 @@ import yaml
 import sys
 import os
 import glob
+import logging
 
 LOCAL = 'local'
 REMOTE = 'remote'
@@ -24,7 +25,7 @@ def do_addons(addons_file_path, enabled_addons, units, uniq):
         async_commands('juju ssh {} "mkdir -p %s"' % pull_location, units)
     for addon in enabled_addons:
         if addon not in addons:
-            print('The addons file: "%s" does not define %s' %
+            logging.warning('The addons file: "%s" does not define %s' %
                   (addons_file_path, addon))
             sys.exit(1)
         addons[addon].push(units, push_location)
@@ -52,7 +53,7 @@ def load_addons(addons_file_path):
             assert(LOCAL in info)
             assert(REMOTE in info)
         except AssertionError:
-            print('The addons file: "%s" is malformed, "%s" does not have one'
+            logging.warning('The addons file: "%s" is malformed, "%s" does not have one'
                   ' of the necessary keys "%s" or "%s"' %
                   (addons_file_path, name, LOCAL, REMOTE))
             sys.exit(1)
@@ -66,12 +67,13 @@ def async_commands(command, contexts, timeout=45):
     for context in contexts:
         args = shlex.split(('timeout %ds ' % timeout) +
                            command.format(context))
+        logging.debug("Running {} in context {}".format(command, context))
         procs.append(subprocess.Popen(args, stdin=FNULL, stdout=FNULL,
                                       stderr=FNULL))
     for proc in procs:
         proc.communicate()
         if proc.returncode != 0:
-            print('command %s failed' % command)
+            logging.warning('command %s failed' % command)
 
 
 class CrashdumpAddon(object):
