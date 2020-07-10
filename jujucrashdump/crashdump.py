@@ -14,6 +14,7 @@ import tempfile
 import uuid
 import yaml
 import concurrent.futures
+import logging
 from collections import defaultdict
 from os.path import expanduser
 try:
@@ -82,7 +83,7 @@ def retrieve_single_unit_tarball(tuple_input):
         # up, or scp fails for some other reason, you won't
         # have a tarball to move. In that case, skip, and try
         # fetching the tarball for the next machine.
-        print("Unable to retrieve tarball for %s. Skipping." % machine)
+        logging.warning("Unable to retrieve tarball for %s. Skipping." % machine)
     for alias in alias_group:
         os.symlink('%s' % machine, '%s' % alias.replace('/', '_'))
 
@@ -127,16 +128,18 @@ def set_model(model):
 
 
 def run_cmd(command, fatal=False, to_file=None):
+    logging.debug("Calling {}".format(command))
     try:
         output = subprocess.check_output(command, shell=True, stderr=FNULL)
         if to_file is not None:
             with open(to_file, 'wb') as fd:
                 fd.write(output)
     except subprocess.CalledProcessError:
-        print('Command "%s" failed' % command)
+        logging.warning('Command "%s" failed' % command)
         if fatal:
             sys.exit(1)
         return False
+    logging.debug("Returned from {}".format(command))
     return True
 
 
@@ -299,7 +302,7 @@ class CrashCollector(object):
         aliases = service_unit_addresses(juju_status)
         if not aliases:
             # Running against an empty model.
-            print("0 machines found. No tarballs to retrieve.")
+            logging.warning("0 machines found. No tarballs to retrieve.")
             return
         pool = multiprocessing.Pool()
         pool.map(
@@ -341,14 +344,13 @@ def upload_file_to_bug(bugnum, file_):
         # We guard against this by checking for APPORT when the script
         # first runs (see bottom of this file). Just in case we get
         # here without apport, inform the user and skip this routine.
-        print(
-            "Apport not available in this environment. "
-            "Skipping upload file to bug."
+        logging.warning(
+            "Apport not available in this environment. Skipping upload file to bug."
         )
         return
     crashdb = crashdb = apport.crashdb.get_crashdb(None)
     if not crashdb.can_update(bugnum):
-        print(dedent("""
+        logging.warning(dedent("""
             You are not the reporter or subscriber of this problem report,
             or the report is a duplicate or already closed.
 
@@ -361,7 +363,7 @@ def upload_file_to_bug(bugnum, file_):
     report = apport.Report('Bug')
     apport.hookutils.attach_file(report, file_, overwrite=False)
     if len(report) != 0:
-        print("Starting upload to lp:%s" % bugnum)
+        logging.info("Starting upload to lp:%s" % bugnum)
         crashdb.update(bugnum, report, 'apport information',
                        change_description=is_reporter,
                        attachment_comment='juju crashdump')
@@ -410,14 +412,21 @@ def parse_args():
     parser.add_argument('-j', '--journalctl', action='append',
                         help='Collect the journalctl logs for the systemd unit'
                              ' with the given name')
+    parser.add_argument('-l', '--logging-level', type=str,
+                        default="info", help="logging level")
     return parser.parse_args()
 
 
 def main():
     opts = parse_args()
+    numeric_level = getattr(logging, opts.logging_level.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError('Invalid log level: %s' % opts.logging_level)
+    logging.basicConfig(format='%(asctime)s - %(message)s', level=numeric_level)
+    logging.info("juju-crashdump started.")
     if opts.bug and not APPORT:
-        print("Apport not available in this environment. "
-              "You must 'apt install' apport to use the 'bug' option. "
+        logging.warning("Apport not available in this environment.\n" +
+              "You must 'apt install' apport to use the 'bug' option.\n" +
               "Aborting run.")
         return
     if not opts.small:
@@ -443,6 +452,7 @@ def main():
     filename = collector.collect()
     if opts.bug:
         upload_file_to_bug(opts.bug, filename)
+    logging.info("juju-crashdump finished.")
 
 
 if __name__ == '__main__':
