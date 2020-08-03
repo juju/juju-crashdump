@@ -56,6 +56,8 @@ DIRECTORIES = [
     '/var/lib/libvirt/filesystems/plumgrid/var/log',
     '/var/lib/cloud/seed',
     '/var/log',
+    # /root/curtin-install-cfg.yaml /root/curtin-install.log
+    '/root',
 ]
 
 SSH_PARM = ' -o StrictHostKeyChecking=no\
