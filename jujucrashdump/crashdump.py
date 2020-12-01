@@ -56,7 +56,8 @@ DIRECTORIES = [
     '/var/lib/libvirt/filesystems/plumgrid/var/log',
     '/var/lib/cloud/seed',
     '/var/log',
-    '/var/snap/simplestreams/common/sstream-mirror-glance.log'
+    '/var/snap/simplestreams/common/sstream-mirror-glance.log',
+    '/var/crash',
 ]
 
 SSH_PARM = ' -o StrictHostKeyChecking=no\
