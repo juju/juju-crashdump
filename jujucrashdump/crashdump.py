@@ -58,6 +58,7 @@ DIRECTORIES = [
     '/var/log',
     '/var/snap/simplestreams/common/sstream-mirror-glance.log',
     '/var/crash',
+    '/var/snap/juju-db/common/logs/',
 ]
 
 SSH_PARM = ' -o StrictHostKeyChecking=no\
