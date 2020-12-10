@@ -26,7 +26,7 @@ def do_addons(addons_file_path, enabled_addons, units, uniq):
     for addon in enabled_addons:
         if addon not in addons:
             logging.warning('The addons file: "%s" does not define %s' %
-                  (addons_file_path, addon))
+                            (addons_file_path, addon))
             sys.exit(1)
         addons[addon].push(units, push_location)
         addons[addon].run(units,
@@ -53,9 +53,10 @@ def load_addons(addons_file_path):
             assert(LOCAL in info)
             assert(REMOTE in info)
         except AssertionError:
-            logging.warning('The addons file: "%s" is malformed, "%s" does not have one'
-                  ' of the necessary keys "%s" or "%s"' %
-                  (addons_file_path, name, LOCAL, REMOTE))
+            logging.warning(
+                'The addons file: "%s" is malformed, "%s" does not have one'
+                ' of the necessary keys "%s" or "%s"' %
+                (addons_file_path, name, LOCAL, REMOTE))
             sys.exit(1)
         addons[name] = CrashdumpAddon(name, info[LOCAL], info[REMOTE])
     return addons
