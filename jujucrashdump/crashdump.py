@@ -160,6 +160,10 @@ def juju_status():
     juju_cmd(' status --format=yaml', to_file='juju_status.yaml')
 
 
+def juju_export_bundle():
+    juju_cmd('export-bundle', to_file='bundle.yaml')
+
+
 def juju_debuglog():
     juju_cmd('debug-log --replay --no-tail', to_file='debug_log.txt')
 
@@ -317,6 +321,7 @@ class CrashCollector(object):
     def collect(self):
         juju_check()
         juju_status()
+        juju_export_bundle()
         if 'debug_log.txt' not in self.exclude:
             juju_debuglog()
         if 'model_config.yaml' not in self.exclude:
