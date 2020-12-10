@@ -161,7 +161,7 @@ def juju_status():
 
 
 def juju_debuglog():
-    juju_cmd('debug-log --replay --no-tail', to_file='debug_log.txt')
+    juju_cmd('debug-log --date --replay --no-tail', to_file='debug_log.txt')
 
 
 def juju_model_defaults():
