@@ -158,6 +158,7 @@ def juju_check():
 
 def juju_status():
     juju_cmd(' status --format=yaml', to_file='juju_status.yaml')
+    juju_cmd(' status --format=tabular --relations --storage', to_file='juju_status.txt')
 
 
 def juju_debuglog():
