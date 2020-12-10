@@ -430,8 +430,8 @@ def main():
     logging.info("juju-crashdump started.")
     if opts.bug and not APPORT:
         logging.warning("Apport not available in this environment.\n" +
-              "You must 'apt install' apport to use the 'bug' option.\n" +
-              "Aborting run.")
+                        "You must 'apt install' apport to use the 'bug' option.\n" +
+                        "Aborting run.")
         return
     if not opts.small:
         DIRECTORIES.append('/var/lib/juju')

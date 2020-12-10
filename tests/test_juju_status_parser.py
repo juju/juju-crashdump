@@ -11,7 +11,7 @@ class TestJujuStatusParser(TestCase):
     def __check_status(self, filename, dict_):
         mapping = defaultdict(set, dict_)
         with open(os.path.join(ASSETS_PATH, filename)) as fd:
-            self.assertEquals(crashdump.service_unit_addresses(yaml.load(fd)),
+            self.assertEquals(crashdump.service_unit_addresses(yaml.safe_load(fd)),
                               mapping)
 
     def test_good_status(self):
