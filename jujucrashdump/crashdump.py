@@ -390,7 +390,8 @@ def parse_args():
     parser.add_argument('-m', '--model', default=None,
                         help='Model to act on')
     parser.add_argument('-f', '--max-file-size', default=MAX_FILE_SIZE,
-                        help='The max file size (bytes) for included files')
+                        help='The max file size (bytes) for included files. '
+                             '(default: %(default)s)')
     parser.add_argument('-b', '--bug', default=None,
                         help='Upload crashdump to the given launchpad bug #')
     parser.add_argument('extra_dir', nargs='*', default=[],
@@ -398,7 +399,8 @@ def parse_args():
     parser.add_argument('-x', '--exclude', action='append',
                         help='Directories or files to exclude from capture.')
     parser.add_argument('-c', '--compression', default='xz',
-                        help='The compression type to use for result tarball.')
+                        help='The compression type to use for result tarball. '
+                             '(default: %(default)s)')
     parser.add_argument('-o', '--output-dir',
                         help="Store the completed crash dump in this dir.")
     parser.add_argument('-u', '--uniq',
@@ -410,14 +412,16 @@ def parse_args():
     parser.add_argument('-a', '--addon', action='append',
                         help='Enable the addon with the given name')
     parser.add_argument('-t', '--timeout', type=int, default='45',
-                        help='Timeout in seconds for creating unit tarballs.')
+                        help='Timeout in seconds for creating unit tarballs. '
+                             '(default: %(default)s)')
     parser.add_argument('--addons-file', action='append',
                         help='Use this file for addon definitions', default=[])
     parser.add_argument('-j', '--journalctl', action='append',
                         help='Collect the journalctl logs for the systemd unit'
                              ' with the given name')
     parser.add_argument('-l', '--logging-level', type=str,
-                        default="info", help="logging level")
+                        default="info",
+                        help="logging level (default: %(default)s)")
     return parser.parse_args()
 
 
