@@ -196,9 +196,11 @@ class CrashCollector(object):
         self.max_size = max_size
         self.extra_dirs = extra_dirs
         self.cwd = os.getcwd()
-        self.tempdir = tempfile.mkdtemp(dir=expanduser('~'))
-        os.chdir(self.tempdir)
         self.uniq = uniq or uuid.uuid4()
+        self.tempdir = tempfile.mkdtemp(dir=expanduser('~'))
+        self.tardir = os.path.join(self.tempdir, str(self.uniq))
+        os.mkdir(self.tardir)
+        os.chdir(self.tardir)
         self.output_dir = output_dir or '.'
         self.addons = addons
         self.addons_file = addons_file
@@ -331,6 +333,7 @@ class CrashCollector(object):
         self.run_journalctl()
         self.create_unit_tarballs()
         self.retrieve_unit_tarballs()
+        os.chdir(self.tempdir)
         tar_file = "juju-crashdump-%s.tar.%s" % (self.uniq, self.compression)
         run_cmd("tar -pacf %s * 2>/dev/null" % tar_file)
         os.chdir(self.cwd)
