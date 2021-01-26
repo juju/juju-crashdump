@@ -371,7 +371,7 @@ class CrashCollector(object):
             juju_storage()
         if "storage_pools.yaml" not in self.exclude:
             juju_storage_pools()
-        self.get_caas_stuff
+        self.get_caas_stuff()
         self.run_addons()
         self.run_listening()
         self.run_journalctl()
