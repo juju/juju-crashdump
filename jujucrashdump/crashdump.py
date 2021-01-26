@@ -232,7 +232,7 @@ class CrashCollector(object):
 
     def get_all(self):
         machines = {}
-        juju_status = yaml.load(open("juju_status.yaml", "r"), Loader=yaml.FullLoader)
+        juju_status = self.status
         for machine, machine_data in juju_status["machines"].items():
             try:
                 machines[machine] = machine_data["ip-addresses"]
@@ -260,8 +260,7 @@ class CrashCollector(object):
             ]
 
     def run_addons(self):
-        juju_status = yaml.load(open("juju_status.yaml", "r"), Loader=yaml.FullLoader)
-        machines = service_unit_addresses(juju_status).keys()
+        machines = service_unit_addresses(self.status).keys()
         if not machines:
             return
         if self.addons_file is not None and self.addons is not None:
@@ -325,10 +324,14 @@ class CrashCollector(object):
             )
         )
 
+    @property
+    def status(self):
+        juju_status = yaml.load(open("juju_status.yaml", "r"), Loader=yaml.FullLoader)
+        return juju_status
+
     def retrieve_unit_tarballs(self):
         all_machines = self.get_all()
-        juju_status = yaml.load(open("juju_status.yaml", "r"), Loader=yaml.FullLoader)
-        aliases = service_unit_addresses(juju_status)
+        aliases = service_unit_addresses(self.status)
         if not aliases:
             # Running against an empty model.
             logging.warning("0 machines found. No tarballs to retrieve.")
@@ -337,6 +340,24 @@ class CrashCollector(object):
         pool.map(
             retrieve_single_unit_tarball,
             [(self.uniq, key, value, all_machines) for key, value in aliases.items()],
+        )
+
+    def get_caas_stuff(self):
+        juju_status = self.status
+        if juju_status["model"]["type"] != "caas":
+            return
+
+        if "KUBECONFIG" not in os.environ:
+            return
+
+        try:
+            subprocess.check_output(["which", "kubectl"])
+        except subprocess.CalledProcessError:
+            return
+
+        run_cmd(
+            "kubectl -n %s get pods" % (juju_status["model"]["name"]),
+            to_file="pods.txt",
         )
 
     def collect(self):
@@ -350,6 +371,7 @@ class CrashCollector(object):
             juju_storage()
         if "storage_pools.yaml" not in self.exclude:
             juju_storage_pools()
+        self.get_caas_stuff
         self.run_addons()
         self.run_listening()
         self.run_journalctl()
