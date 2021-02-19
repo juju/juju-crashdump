@@ -61,6 +61,7 @@ DIRECTORIES = [
     "/var/snap/simplestreams/common/sstream-mirror-glance.log",
     "/var/crash",
     "/var/snap/juju-db/common/logs/",
+    "/var/lib/mysql/*-mysql-router",
 ]
 
 SSH_PARM = " -o StrictHostKeyChecking=no\
