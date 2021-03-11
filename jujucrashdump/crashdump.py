@@ -277,6 +277,15 @@ class CrashCollector(object):
             "".format(pull_location=pull_location)
         )
 
+    def run_psaux(self):
+        pull_location = "/tmp/{uniq}/cmd_output".format(uniq=self.uniq)
+        self._run_all(
+            "mkdir -p {pull_location};"
+            "sudo ps aux"
+            " | sudo tee {pull_location}/psaux.txt || true"
+            "".format(pull_location=pull_location)
+        )
+
     def run_journalctl(self):
         for service in self.journalctl or []:
             logdir = "/tmp/{uniq}/journalctl".format(uniq=self.uniq)
