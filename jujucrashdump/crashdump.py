@@ -285,7 +285,6 @@ class CrashCollector(object):
             "".format(pull_location=pull_location)
         )
 
-
     def run_journalctl(self):
         for service in self.journalctl or []:
             logdir = "/tmp/{uniq}/journalctl".format(uniq=self.uniq)
