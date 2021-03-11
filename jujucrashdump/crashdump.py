@@ -62,6 +62,7 @@ DIRECTORIES = [
     "/var/crash",
     "/var/snap/juju-db/common/logs/",
     "/var/lib/mysql/*-mysql-router",
+    "/tmp/juju-exec*/script.sh",
 ]
 
 SSH_PARM = " -o StrictHostKeyChecking=no\
