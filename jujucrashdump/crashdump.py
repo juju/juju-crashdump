@@ -385,6 +385,7 @@ class CrashCollector(object):
         self.get_caas_stuff()
         self.run_addons()
         self.run_listening()
+        self.run_psaux()
         self.run_journalctl()
         self.create_unit_tarballs()
         self.retrieve_unit_tarballs()
