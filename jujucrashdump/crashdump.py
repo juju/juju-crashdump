@@ -65,8 +65,6 @@ DIRECTORIES = [
     "/tmp/juju-exec*/script.sh",
 ]
 
-LOGS_DUMP_LOCATION = "/home/ubuntu"
-
 SSH_PARM = " -o StrictHostKeyChecking=no\
  -i ~/.local/share/juju/ssh/juju_id_rsa"
 
@@ -75,14 +73,14 @@ SCP_CMD = "scp" + SSH_PARM
 
 
 def retrieve_single_unit_tarball(tuple_input):
-    unique, machine, alias_group, all_machines = tuple_input
+    unique, machine, alias_group, all_machines, unit_dump_location = tuple_input
     unit_unique = uuid.uuid4()
     for ip in all_machines[machine]:
         if run_cmd(
             "{scp} ubuntu@{ip}:{dump_location}/{unique}/juju-dump-{unique}.tar {unit_unique}.tar".format(
                 scp=SCP_CMD,
                 ip=ip,
-                dump_location=LOGS_DUMP_LOCATION,
+                dump_location=unit_dump_location,
                 unique=unique,
                 unit_unique=unit_unique,
             )
@@ -196,9 +194,7 @@ def run_ssh(host, timeout, ssh_cmd, cmd):
     # Each host can have several interfaces and IP addresses.
     # This cycles through them and uses the first working.
     for ip in host:
-        if run_cmd(
-            "timeout {}s {} ubuntu@{} sudo '{}'".format(timeout, ssh_cmd, ip, cmd)
-        ):
+        if run_cmd("timeout {}s {} ubuntu@{} '{}'".format(timeout, ssh_cmd, ip, cmd)):
             break
 
 
@@ -218,6 +214,7 @@ class CrashCollector(object):
         compression="xz",
         timeout=45,
         journalctl=None,
+        unit_dump_location=None,
     ):
         if model:
             set_model(model)
@@ -238,6 +235,7 @@ class CrashCollector(object):
         self.compression = compression
         self.timeout = timeout
         self.journalctl = journalctl
+        self.unit_dump_location = unit_dump_location
 
     def get_all(self):
         machines = {}
@@ -276,26 +274,32 @@ class CrashCollector(object):
             return do_addons(self.addons_file, self.addons, machines, self.uniq)
 
     def run_listening(self):
-        pull_location = "/tmp/{uniq}/cmd_output".format(uniq=self.uniq)
+        pull_location = "{dump_location}/{uniq}/cmd_output".format(
+            dump_location=self.unit_dump_location, uniq=self.uniq
+        )
         self._run_all(
             "mkdir -p {pull_location};"
             "sudo netstat -taupn | grep LISTEN 2>/dev/null"
-            " | sudo tee {pull_location}/listening.txt || true"
+            " | tee {pull_location}/listening.txt || true"
             "".format(pull_location=pull_location)
         )
 
     def run_psaux(self):
-        pull_location = "/tmp/{uniq}/cmd_output".format(uniq=self.uniq)
+        pull_location = "{dump_location}/{uniq}/cmd_output".format(
+            dump_location=self.unit_dump_location, uniq=self.uniq
+        )
         self._run_all(
             "mkdir -p {pull_location};"
             "sudo ps aux"
-            " | sudo tee {pull_location}/psaux.txt || true"
+            " | tee {pull_location}/psaux.txt || true"
             "".format(pull_location=pull_location)
         )
 
     def run_journalctl(self):
         for service in self.journalctl or []:
-            logdir = "/tmp/{uniq}/journalctl".format(uniq=self.uniq)
+            logdir = "{dump_location}/{uniq}/journalctl".format(
+                dump_location=self.unit_dump_location, uniq=self.uniq
+            )
             logfile = "{logdir}/{service}.log".format(logdir=logdir, service=service)
             self._run_all(
                 "mkdir -p {logdir};"
@@ -315,8 +319,8 @@ class CrashCollector(object):
         def _append(parent, incl):
             return (
                 "tar --append -f {dump_location}/{uniq}/juju-dump-{uniq}.tar -C "
-                "/tmp/{uniq}/{parent} {incl} || true".format(
-                    dump_location=LOGS_DUMP_LOCATION,
+                "{dump_location}/{uniq}/{parent} {incl} || true".format(
+                    dump_location=self.unit_dump_location,
                     uniq=self.uniq,
                     parent=parent,
                     incl=incl,
@@ -333,19 +337,20 @@ class CrashCollector(object):
             max_size=self.max_size,
             excludes="".join([" --exclude {}".format(x) for x in self.exclude]),
             uniq=self.uniq,
-            dump_location=LOGS_DUMP_LOCATION,
+            dump_location=self.unit_dump_location,
         )
 
         self._run_all(
             "mkdir -p {dump_location}/{uniq}".format(
-                dump_location=LOGS_DUMP_LOCATION, uniq=self.uniq
+                dump_location=self.unit_dump_location, uniq=self.uniq
             )
         )
+
+        self._run_all(tar_cmd)
 
         self._run_all(
             ";".join(
                 [
-                    tar_cmd,
                     _append("cmd_output", "."),
                     _append("", "journalctl"),
                     _append("addon_output", "."),
@@ -368,7 +373,10 @@ class CrashCollector(object):
         pool = multiprocessing.Pool()
         pool.map(
             retrieve_single_unit_tarball,
-            [(self.uniq, key, value, all_machines) for key, value in aliases.items()],
+            [
+                (self.uniq, key, value, all_machines, self.unit_dump_location)
+                for key, value in aliases.items()
+            ],
         )
 
     def get_caas_stuff(self):
@@ -389,13 +397,6 @@ class CrashCollector(object):
             to_file="pods.txt",
         )
 
-    def clean_unit_tarballs(self):
-        self._run_all(
-            "rm -rf {dump_location}/{uniq}".format(
-                dump_location=LOGS_DUMP_LOCATION, uniq=self.uniq
-            )
-        )
-
     def collect(self):
         juju_check()
         juju_status()
@@ -414,7 +415,6 @@ class CrashCollector(object):
         self.run_journalctl()
         self.create_unit_tarballs()
         self.retrieve_unit_tarballs()
-        self.clean_unit_tarballs()
         os.chdir(self.tempdir)
         tar_file = "juju-crashdump-%s.tar.%s" % (self.uniq, self.compression)
         run_cmd("tar -pacf %s * 2>/dev/null" % tar_file)
@@ -558,6 +558,12 @@ def parse_args():
         default="info",
         help="logging level (default: %(default)s)",
     )
+    parser.add_argument(
+        "--unit-dump-location",
+        type=str,
+        default="/tmp",
+        help="path to dump crashdump on units (default: %(default)s)",
+    )
     return parser.parse_args()
 
 
@@ -594,6 +600,7 @@ def main():
         compression=opts.compression,
         timeout=opts.timeout,
         journalctl=opts.journalctl,
+        unit_dump_location=opts.unit_dump_location,
     )
     filename = collector.collect()
     if opts.bug:
