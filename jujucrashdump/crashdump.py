@@ -65,6 +65,8 @@ DIRECTORIES = [
     "/tmp/juju-exec*/script.sh",
 ]
 
+LOGS_DUMP_LOCATION = "/home/ubuntu"
+
 SSH_PARM = " -o StrictHostKeyChecking=no\
  -i ~/.local/share/juju/ssh/juju_id_rsa"
 
@@ -77,8 +79,13 @@ def retrieve_single_unit_tarball(tuple_input):
     unit_unique = uuid.uuid4()
     for ip in all_machines[machine]:
         if run_cmd(
-            "%s ubuntu@%s:/tmp/juju-dump-%s.tar %s.tar"
-            % (SCP_CMD, ip, unique, unit_unique)
+            "{scp} ubuntu@{ip}:{dump_location}/{unique}/juju-dump-{unique}.tar {unit_unique}.tar".format(
+                scp=SCP_CMD,
+                ip=ip,
+                dump_location=LOGS_DUMP_LOCATION,
+                unique=unique,
+                unit_unique=unit_unique,
+            )
         ):
             break
     if "/" not in machine:
@@ -307,15 +314,18 @@ class CrashCollector(object):
 
         def _append(parent, incl):
             return (
-                "sudo tar --append -f /tmp/juju-dump-{uniq}.tar -C "
+                "tar --append -f {dump_location}/{uniq}/juju-dump-{uniq}.tar -C "
                 "/tmp/{uniq}/{parent} {incl} || true".format(
-                    uniq=self.uniq, parent=parent, incl=incl
+                    dump_location=LOGS_DUMP_LOCATION,
+                    uniq=self.uniq,
+                    parent=parent,
+                    incl=incl,
                 )
             )
 
         tar_cmd = (
-            "sudo find {dirs} -mount -type f -size -{max_size}c -o -size "
-            "{max_size}c 2>/dev/null | sudo tar -pcf /tmp/juju-dump-{uniq}.tar"
+            "find {dirs} -mount -type f -size -{max_size}c -o -size "
+            "{max_size}c 2>/dev/null | tar -pcf {dump_location}/{uniq}/juju-dump-{uniq}.tar"
             "{excludes}"
             " --files-from - 2>/dev/null"
         ).format(
@@ -323,7 +333,15 @@ class CrashCollector(object):
             max_size=self.max_size,
             excludes="".join([" --exclude {}".format(x) for x in self.exclude]),
             uniq=self.uniq,
+            dump_location=LOGS_DUMP_LOCATION,
         )
+
+        self._run_all(
+            "mkdir -p {dump_location}/{uniq}".format(
+                dump_location=LOGS_DUMP_LOCATION, uniq=self.uniq
+            )
+        )
+
         self._run_all(
             ";".join(
                 [
@@ -371,6 +389,13 @@ class CrashCollector(object):
             to_file="pods.txt",
         )
 
+    def clean_unit_tarballs(self):
+        self._run_all(
+            "rm -rf {dump_location}/{uniq}".format(
+                dump_location=LOGS_DUMP_LOCATION, uniq=self.uniq
+            )
+        )
+
     def collect(self):
         juju_check()
         juju_status()
@@ -389,6 +414,7 @@ class CrashCollector(object):
         self.run_journalctl()
         self.create_unit_tarballs()
         self.retrieve_unit_tarballs()
+        self.clean_unit_tarballs()
         os.chdir(self.tempdir)
         tar_file = "juju-crashdump-%s.tar.%s" % (self.uniq, self.compression)
         run_cmd("tar -pacf %s * 2>/dev/null" % tar_file)
