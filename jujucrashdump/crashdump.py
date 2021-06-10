@@ -77,7 +77,8 @@ def retrieve_single_unit_tarball(tuple_input):
     unit_unique = uuid.uuid4()
     for ip in all_machines[machine]:
         if run_cmd(
-            "{scp} ubuntu@{ip}:{dump_location}/{unique}/juju-dump-{unique}.tar {unit_unique}.tar".format(
+            "{scp} ubuntu@{ip}:{dump_location}/{unique}/juju-dump-{unique}.tar {unit_unique}.tar"
+            .format(
                 scp=SCP_CMD,
                 ip=ip,
                 dump_location=unit_dump_location,
@@ -214,7 +215,7 @@ class CrashCollector(object):
         compression="xz",
         timeout=45,
         journalctl=None,
-        unit_dump_location=None,
+        unit_dump_location="/tmp",
     ):
         if model:
             set_model(model)
