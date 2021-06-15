@@ -73,12 +73,18 @@ SCP_CMD = "scp" + SSH_PARM
 
 
 def retrieve_single_unit_tarball(tuple_input):
-    unique, machine, alias_group, all_machines = tuple_input
+    unique, machine, alias_group, all_machines, unit_dump_location = tuple_input
     unit_unique = uuid.uuid4()
     for ip in all_machines[machine]:
         if run_cmd(
-            "%s ubuntu@%s:/tmp/juju-dump-%s.tar %s.tar"
-            % (SCP_CMD, ip, unique, unit_unique)
+            "{scp} ubuntu@{ip}:{dump_location}/{unique}/juju-dump-{unique}.tar {unit_unique}.tar"
+            .format(
+                scp=SCP_CMD,
+                ip=ip,
+                dump_location=unit_dump_location,
+                unique=unique,
+                unit_unique=unit_unique,
+            )
         ):
             break
     if "/" not in machine:
@@ -189,9 +195,7 @@ def run_ssh(host, timeout, ssh_cmd, cmd):
     # Each host can have several interfaces and IP addresses.
     # This cycles through them and uses the first working.
     for ip in host:
-        if run_cmd(
-            "timeout {}s {} ubuntu@{} sudo '{}'".format(timeout, ssh_cmd, ip, cmd)
-        ):
+        if run_cmd("timeout {}s {} ubuntu@{} '{}'".format(timeout, ssh_cmd, ip, cmd)):
             break
 
 
@@ -211,6 +215,7 @@ class CrashCollector(object):
         compression="xz",
         timeout=45,
         journalctl=None,
+        unit_dump_location="/tmp",
     ):
         if model:
             set_model(model)
@@ -231,6 +236,7 @@ class CrashCollector(object):
         self.compression = compression
         self.timeout = timeout
         self.journalctl = journalctl
+        self.unit_dump_location = unit_dump_location
 
     def get_all(self):
         machines = {}
@@ -269,26 +275,32 @@ class CrashCollector(object):
             return do_addons(self.addons_file, self.addons, machines, self.uniq)
 
     def run_listening(self):
-        pull_location = "/tmp/{uniq}/cmd_output".format(uniq=self.uniq)
+        pull_location = "{dump_location}/{uniq}/cmd_output".format(
+            dump_location=self.unit_dump_location, uniq=self.uniq
+        )
         self._run_all(
             "mkdir -p {pull_location};"
             "sudo netstat -taupn | grep LISTEN 2>/dev/null"
-            " | sudo tee {pull_location}/listening.txt || true"
+            " | tee {pull_location}/listening.txt || true"
             "".format(pull_location=pull_location)
         )
 
     def run_psaux(self):
-        pull_location = "/tmp/{uniq}/cmd_output".format(uniq=self.uniq)
+        pull_location = "{dump_location}/{uniq}/cmd_output".format(
+            dump_location=self.unit_dump_location, uniq=self.uniq
+        )
         self._run_all(
             "mkdir -p {pull_location};"
             "sudo ps aux"
-            " | sudo tee {pull_location}/psaux.txt || true"
+            " | tee {pull_location}/psaux.txt || true"
             "".format(pull_location=pull_location)
         )
 
     def run_journalctl(self):
         for service in self.journalctl or []:
-            logdir = "/tmp/{uniq}/journalctl".format(uniq=self.uniq)
+            logdir = "{dump_location}/{uniq}/journalctl".format(
+                dump_location=self.unit_dump_location, uniq=self.uniq
+            )
             logfile = "{logdir}/{service}.log".format(logdir=logdir, service=service)
             self._run_all(
                 "mkdir -p {logdir};"
@@ -307,15 +319,18 @@ class CrashCollector(object):
 
         def _append(parent, incl):
             return (
-                "sudo tar --append -f /tmp/juju-dump-{uniq}.tar -C "
-                "/tmp/{uniq}/{parent} {incl} || true".format(
-                    uniq=self.uniq, parent=parent, incl=incl
+                "tar --append -f {dump_location}/{uniq}/juju-dump-{uniq}.tar -C "
+                "{dump_location}/{uniq}/{parent} {incl} || true".format(
+                    dump_location=self.unit_dump_location,
+                    uniq=self.uniq,
+                    parent=parent,
+                    incl=incl,
                 )
             )
 
         tar_cmd = (
-            "sudo find {dirs} -mount -type f -size -{max_size}c -o -size "
-            "{max_size}c 2>/dev/null | sudo tar -pcf /tmp/juju-dump-{uniq}.tar"
+            "find {dirs} -mount -type f -size -{max_size}c -o -size "
+            "{max_size}c 2>/dev/null | tar -pcf {dump_location}/{uniq}/juju-dump-{uniq}.tar"
             "{excludes}"
             " --files-from - 2>/dev/null"
         ).format(
@@ -323,11 +338,20 @@ class CrashCollector(object):
             max_size=self.max_size,
             excludes="".join([" --exclude {}".format(x) for x in self.exclude]),
             uniq=self.uniq,
+            dump_location=self.unit_dump_location,
         )
+
+        self._run_all(
+            "mkdir -p {dump_location}/{uniq}".format(
+                dump_location=self.unit_dump_location, uniq=self.uniq
+            )
+        )
+
+        self._run_all(tar_cmd)
+
         self._run_all(
             ";".join(
                 [
-                    tar_cmd,
                     _append("cmd_output", "."),
                     _append("", "journalctl"),
                     _append("addon_output", "."),
@@ -350,7 +374,10 @@ class CrashCollector(object):
         pool = multiprocessing.Pool()
         pool.map(
             retrieve_single_unit_tarball,
-            [(self.uniq, key, value, all_machines) for key, value in aliases.items()],
+            [
+                (self.uniq, key, value, all_machines, self.unit_dump_location)
+                for key, value in aliases.items()
+            ],
         )
 
     def get_caas_stuff(self):
@@ -532,6 +559,12 @@ def parse_args():
         default="info",
         help="logging level (default: %(default)s)",
     )
+    parser.add_argument(
+        "--unit-dump-location",
+        type=str,
+        default="/tmp",
+        help="path to dump crashdump on units (default: %(default)s)",
+    )
     return parser.parse_args()
 
 
@@ -568,6 +601,7 @@ def main():
         compression=opts.compression,
         timeout=opts.timeout,
         journalctl=opts.journalctl,
+        unit_dump_location=opts.unit_dump_location,
     )
     filename = collector.collect()
     if opts.bug:

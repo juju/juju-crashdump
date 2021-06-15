@@ -18,10 +18,10 @@ import tests.utils as utils
 
 import jujucrashdump.crashdump as crashdump
 
-class TestCrashCollector(utils.BaseTestCase):
 
+class TestCrashCollector(utils.BaseTestCase):
     def setUp(self):
-        self.target = crashdump.CrashCollector('aModel', 42, ['extra_dir'])
+        self.target = crashdump.CrashCollector("aModel", 42, ["extra_dir"])
         self._patches = {}
         self._patches_start = {}
 
@@ -42,36 +42,27 @@ class TestCrashCollector(utils.BaseTestCase):
         setattr(self, attr, started)
 
     def test_create_unit_tarballs(self):
-        self.patch_object(crashdump, 'DIRECTORIES')
-        self.target.uniq = 'fake-uuid'
-        self.patch_target('_run_all')
-        self.DIRECTORIES.__iter__.return_value = ['dir']
+        self.patch_object(crashdump, "DIRECTORIES")
+        self.target.uniq = "fake-uuid"
+        self.patch_target("_run_all")
+        self.DIRECTORIES.__iter__.return_value = ["dir"]
         self.target.create_unit_tarballs()
-        self._run_all.assert_called_once_with(
-            'sudo find dir extra_dir /var/lib/lxd/containers/*/rootfsdir '
-            '/var/lib/lxd/containers/*/rootfsextra_dir -mount -type f '
-            '-size -42c -o -size 42c 2>/dev/null | '
-            'sudo tar -pcf /tmp/juju-dump-fake-uuid.tar '
-            '--files-from - 2>/dev/null;'
-            'sudo tar --append -f /tmp/juju-dump-fake-uuid.tar '
-            '-C /tmp/fake-uuid/cmd_output . || true;'
-            'sudo tar --append -f /tmp/juju-dump-fake-uuid.tar '
-            '-C /tmp/fake-uuid/ journalctl || true;'
-            'sudo tar --append -f /tmp/juju-dump-fake-uuid.tar '
-            '-C /tmp/fake-uuid/addon_output . || true')
+        self._run_all.assert_called_with(
+            "tar --append -f /tmp/fake-uuid/juju-dump-fake-uuid.tar "
+            "-C /tmp/fake-uuid/cmd_output . || true;"
+            "tar --append -f /tmp/fake-uuid/juju-dump-fake-uuid.tar "
+            "-C /tmp/fake-uuid/ journalctl || true;"
+            "tar --append -f /tmp/fake-uuid/juju-dump-fake-uuid.tar "
+            "-C /tmp/fake-uuid/addon_output . || true"
+        )
         self._run_all.reset_mock()
-        self.target.exclude = ('exc0', 'exc1')
+        self.target.exclude = ("exc0", "exc1")
         self.target.create_unit_tarballs()
-        self._run_all.assert_called_once_with(
-            'sudo find dir extra_dir /var/lib/lxd/containers/*/rootfsdir '
-            '/var/lib/lxd/containers/*/rootfsextra_dir -mount -type f '
-            '-size -42c -o -size 42c 2>/dev/null | '
-            'sudo tar -pcf /tmp/juju-dump-fake-uuid.tar '
-            '--exclude exc0 --exclude exc1 '
-            '--files-from - 2>/dev/null;'
-            'sudo tar --append -f /tmp/juju-dump-fake-uuid.tar '
-            '-C /tmp/fake-uuid/cmd_output . || true;'
-            'sudo tar --append -f /tmp/juju-dump-fake-uuid.tar '
-            '-C /tmp/fake-uuid/ journalctl || true;'
-            'sudo tar --append -f /tmp/juju-dump-fake-uuid.tar '
-            '-C /tmp/fake-uuid/addon_output . || true')
+        self._run_all.assert_called_with(
+            "tar --append -f /tmp/fake-uuid/juju-dump-fake-uuid.tar "
+            "-C /tmp/fake-uuid/cmd_output . || true;"
+            "tar --append -f /tmp/fake-uuid/juju-dump-fake-uuid.tar "
+            "-C /tmp/fake-uuid/ journalctl || true;"
+            "tar --append -f /tmp/fake-uuid/juju-dump-fake-uuid.tar "
+            "-C /tmp/fake-uuid/addon_output . || true"
+        )
