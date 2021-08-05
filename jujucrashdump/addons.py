@@ -14,9 +14,9 @@ ADDONS_FILE_PATH = os.path.join(os.path.dirname(__file__), 'addons.yaml')
 FNULL = open(os.devnull, 'w')
 
 
-def do_addons(addons_file_path, enabled_addons, units, uniq):
-    push_location = '/tmp/{uniq}/addons'.format(uniq=uniq)
-    pull_location = '/tmp/{uniq}/addon_output'.format(uniq=uniq)
+def do_addons(addons_file_path, enabled_addons, units, dump_to, uniq):
+    push_location = '/{dump_to}/{uniq}/addons'.format(dump_to=dump_to, uniq=uniq)
+    pull_location = '/{dump_to}/{uniq}/addon_output'.format(dump_to=dump_to, uniq=uniq)
     addons = {}
     for addon_file in addons_file_path:
         addons.update(load_addons(addon_file))
