@@ -272,7 +272,13 @@ class CrashCollector(object):
         if not machines:
             return
         if self.addons_file is not None and self.addons is not None:
-            return do_addons(self.addons_file, self.addons, machines, self.unit_dump_location, self.uniq)
+            return do_addons(
+                self.addons_file,
+                self.addons,
+                machines,
+                self.unit_dump_location,
+                self.uniq
+            )
 
     def run_listening(self):
         pull_location = "{dump_location}/{uniq}/cmd_output".format(
