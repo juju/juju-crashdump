@@ -149,8 +149,9 @@ def run_cmd(command, fatal=False, to_file=None):
         if to_file is not None:
             with open(to_file, "wb") as fd:
                 fd.write(output)
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
         logging.warning('Command "%s" failed' % command)
+        logging.warning(e)
         if fatal:
             sys.exit(1)
         return False
