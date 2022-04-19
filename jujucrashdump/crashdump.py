@@ -39,6 +39,7 @@ DIRECTORIES = [
     "/etc/ceph",
     "/etc/cinder",
     "/etc/cloud",
+    "/etc/corosync",
     "/etc/glance",
     "/etc/gnocchi",
     "/etc/keystone",
@@ -77,8 +78,7 @@ def retrieve_single_unit_tarball(tuple_input):
     unit_unique = uuid.uuid4()
     for ip in all_machines[machine]:
         if run_cmd(
-            "{scp} ubuntu@{ip}:{dump_location}/{unique}/juju-dump-{unique}.tar {unit_unique}.tar"
-            .format(
+            "{scp} ubuntu@{ip}:{dump_location}/{unique}/juju-dump-{unique}.tar {unit_unique}.tar".format(
                 scp=SCP_CMD,
                 ip=ip,
                 dump_location=unit_dump_location,
@@ -217,6 +217,7 @@ class CrashCollector(object):
         timeout=45,
         journalctl=None,
         unit_dump_location="/tmp",
+        sensitive=False,
     ):
         if model:
             set_model(model)
@@ -238,6 +239,7 @@ class CrashCollector(object):
         self.timeout = timeout
         self.journalctl = journalctl
         self.unit_dump_location = unit_dump_location
+        self.sensitive = sensitive
 
     def get_all(self):
         machines = {}
@@ -278,7 +280,7 @@ class CrashCollector(object):
                 self.addons,
                 machines,
                 self.unit_dump_location,
-                self.uniq
+                self.uniq,
             )
 
     def run_listening(self):
@@ -336,8 +338,8 @@ class CrashCollector(object):
             )
 
         tar_cmd = (
-            "find {dirs} -mount -type f -size -{max_size}c -o -size "
-            "{max_size}c 2>/dev/null | tar -pcf {dump_location}/{uniq}/juju-dump-{uniq}.tar"
+            "{sudo}find {dirs} -mount -type f -size -{max_size}c -o -size "
+            "{max_size}c 2>/dev/null | {sudo}tar -pcf {dump_location}/{uniq}/juju-dump-{uniq}.tar"
             "{excludes}"
             " --files-from - 2>/dev/null"
         ).format(
@@ -345,6 +347,7 @@ class CrashCollector(object):
             max_size=self.max_size,
             excludes="".join([" --exclude {}".format(x) for x in self.exclude]),
             uniq=self.uniq,
+            sudo="sudo " if self.sensitive else "",
             dump_location=self.unit_dump_location,
         )
 
@@ -572,6 +575,11 @@ def parse_args():
         default="/tmp",
         help="path to dump crashdump on units (default: %(default)s)",
     )
+    parser.add_argument(
+        "--sensitive",
+        action="store_true",
+        help="Collect logs as root, may contain passwords etc. (default: %(default)s)",
+    )
     return parser.parse_args()
 
 
@@ -609,6 +617,7 @@ def main():
         timeout=opts.timeout,
         journalctl=opts.journalctl,
         unit_dump_location=opts.unit_dump_location,
+        sensitive=opts.sensitive,
     )
     filename = collector.collect()
     if opts.bug:
