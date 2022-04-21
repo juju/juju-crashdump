@@ -27,10 +27,9 @@ def do_addons(
     async_commands('juju ssh {machine} "mkdir -p %s"' % pull_location, machines)
     for addon in enabled_addons:
         if addon not in addons:
-            logging.warning(
+            raise AttributeError(
                 'The addons file: "%s" does not define %s' % (addons_file_path, addon)
             )
-            sys.exit(1)
         addons[addon].run(
             machines, units, {"location": push_location, "output": pull_location}
         )
@@ -97,15 +96,11 @@ class CrashdumpAddon(object):
         self.name = name
         self.info = info
 
-    def run(self, machines, units, context):
+    def run(self, *args):
         for action, command in self.info.items():
-            try:
-                getattr(self, action.replace("-", "_"))(
-                    machines, units, context, command
-                )
-            except AttributeError:
-                logging.warn("Invalid action: %s" % action)
-                raise
+            if not hasattr(self, action.replace("-", "_")):
+                raise AttributeError("Invalid action: %s" % action)
+            getattr(self, action.replace("-", "_"))(*args, command)
 
     def local(self, machines, units, context, command):
         """This will fetch the command, and push it to the machines"""
