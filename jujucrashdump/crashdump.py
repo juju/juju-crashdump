@@ -78,7 +78,8 @@ def retrieve_single_unit_tarball(tuple_input):
     unit_unique = uuid.uuid4()
     for ip in all_machines[machine]:
         if run_cmd(
-            "{scp} ubuntu@{ip}:{dump_location}/{unique}/juju-dump-{unique}.tar {unit_unique}.tar".format(
+            "{scp} ubuntu@{ip}:{dump_location}/{unique}/juju-dump-{unique}.tar"
+            " {unit_unique}.tar".format(
                 scp=SCP_CMD,
                 ip=ip,
                 dump_location=unit_dump_location,
@@ -217,7 +218,7 @@ class CrashCollector(object):
         timeout=45,
         journalctl=None,
         unit_dump_location="/tmp",
-        sensitive=False,
+        as_root=False,
     ):
         if model:
             set_model(model)
@@ -239,7 +240,7 @@ class CrashCollector(object):
         self.timeout = timeout
         self.journalctl = journalctl
         self.unit_dump_location = unit_dump_location
-        self.sensitive = sensitive
+        self.as_root = as_root
 
     def get_all(self):
         machines = {}
@@ -271,7 +272,9 @@ class CrashCollector(object):
             ]
 
     def run_addons(self):
-        machines = service_unit_addresses(self.status).keys()
+        services = service_unit_addresses(self.status)
+        machines = services.keys()
+        units = [v for v in list(set.union(*list(services.values()))) if "/" in v]
         if not machines:
             return
         if self.addons_file is not None and self.addons is not None:
@@ -279,35 +282,15 @@ class CrashCollector(object):
                 self.addons_file,
                 self.addons,
                 machines,
+                units,
                 self.unit_dump_location,
                 self.uniq,
+                self.as_root,
             )
-
-    def run_listening(self):
-        pull_location = "{dump_location}/{uniq}/cmd_output".format(
-            dump_location=self.unit_dump_location, uniq=self.uniq
-        )
-        self._run_all(
-            "mkdir -p {pull_location};"
-            "sudo netstat -taupn | grep LISTEN 2>/dev/null"
-            " | tee {pull_location}/listening.txt || true"
-            "".format(pull_location=pull_location)
-        )
-
-    def run_psaux(self):
-        pull_location = "{dump_location}/{uniq}/cmd_output".format(
-            dump_location=self.unit_dump_location, uniq=self.uniq
-        )
-        self._run_all(
-            "mkdir -p {pull_location};"
-            "sudo ps aux"
-            " | tee {pull_location}/psaux.txt || true"
-            "".format(pull_location=pull_location)
-        )
 
     def run_journalctl(self):
         for service in self.journalctl or []:
-            logdir = "{dump_location}/{uniq}/journalctl".format(
+            logdir = "{dump_location}/{uniq}/addon_output/journalctl".format(
                 dump_location=self.unit_dump_location, uniq=self.uniq
             )
             logfile = "{logdir}/{service}.log".format(logdir=logdir, service=service)
@@ -325,21 +308,12 @@ class CrashCollector(object):
         directories.extend(
             ["/var/lib/lxd/containers/*/rootfs" + item for item in directories]
         )
-
-        def _append(parent, incl):
-            return (
-                "tar --append -f {dump_location}/{uniq}/juju-dump-{uniq}.tar -C "
-                "{dump_location}/{uniq}/{parent} {incl} || true".format(
-                    dump_location=self.unit_dump_location,
-                    uniq=self.uniq,
-                    parent=parent,
-                    incl=incl,
-                )
-            )
+        directories.append(".")
 
         tar_cmd = (
+            "cd {dump_location}/{uniq}/addon_output; "
             "{sudo}find {dirs} -mount -type f -size -{max_size}c -o -size "
-            "{max_size}c 2>/dev/null | {sudo}tar -pcf {dump_location}/{uniq}/juju-dump-{uniq}.tar"
+            "{max_size}c 2>/dev/null | {sudo}tar -pcf ../juju-dump-{uniq}.tar"
             "{excludes}"
             " --files-from - 2>/dev/null"
         ).format(
@@ -347,7 +321,7 @@ class CrashCollector(object):
             max_size=self.max_size,
             excludes="".join([" --exclude {}".format(x) for x in self.exclude]),
             uniq=self.uniq,
-            sudo="sudo " if self.sensitive else "",
+            sudo="sudo " if self.as_root else "",
             dump_location=self.unit_dump_location,
         )
 
@@ -358,16 +332,6 @@ class CrashCollector(object):
         )
 
         self._run_all(tar_cmd)
-
-        self._run_all(
-            ";".join(
-                [
-                    _append("cmd_output", "."),
-                    _append("", "journalctl"),
-                    _append("addon_output", "."),
-                ]
-            )
-        )
 
     @property
     def status(self):
@@ -421,8 +385,6 @@ class CrashCollector(object):
             juju_storage_pools()
         self.get_caas_stuff()
         self.run_addons()
-        self.run_listening()
-        self.run_psaux()
         self.run_journalctl()
         self.create_unit_tarballs()
         self.retrieve_unit_tarballs()
@@ -488,7 +450,7 @@ class ShowDescription(argparse.Action):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument(
         "-d",
         "--description",
@@ -553,7 +515,12 @@ def parse_args():
     parser.add_argument(
         "--addons-file",
         action="append",
-        help="Use this file for addon definitions",
+        help="Use this file for addon definitions. Addon files should be fomatted as:\n"
+        " addon-name:\n  local: command to run locally, all created files will be "
+        " pushed to {location} on all units.\n  remote: command to run on every unit,"
+        " all files created in {output} will be saved in the crashdump.\n  local-per-"
+        "unit: local command to run for each {unit} or each {machine}. Std output will "
+        "be saved.",
         default=[],
     )
     parser.add_argument(
@@ -576,9 +543,10 @@ def parse_args():
         help="path to dump crashdump on units (default: %(default)s)",
     )
     parser.add_argument(
-        "--sensitive",
+        "--as-root",
         action="store_true",
-        help="Collect logs as root, may contain passwords etc. (default: %(default)s)",
+        help="Collect logs as root, may contain passwords etc. Addons with local "
+        "commands will only run if this flag is enabled. (default: %(default)s)",
     )
     return parser.parse_args()
 
@@ -604,6 +572,9 @@ def main():
     # We want to load the default addons first, and give the
     # option to overwrite them with newer addons if present.
     opts.addons_file.insert(0, ADDONS_FILE_PATH)
+    if opts.as_root:
+        opts.addon = (opts.addon if opts.addon else []) + ['listening', 'psaux']
+        opts.addon = list(set(opts.addon))
     collector = CrashCollector(
         model=opts.model,
         max_size=opts.max_file_size,
@@ -617,7 +588,7 @@ def main():
         timeout=opts.timeout,
         journalctl=opts.journalctl,
         unit_dump_location=opts.unit_dump_location,
-        sensitive=opts.sensitive,
+        as_root=opts.as_root,
     )
     filename = collector.collect()
     if opts.bug:

@@ -49,4 +49,14 @@ juju crashdump [-h] [-d] [-m MODEL] [-f MAX_FILE_SIZE] [-b BUG]
 <dd>Enable the addon with the given name</dd>
 <dt>--addons-file ADDONS_FILE</dt>
 <dd>Use this file for addon definitions</dd>
+<dt>--as-root</dt>
+<dd>Collect logs as root, may contain passwords etc. Addons with local commands will only run if this flag is enabled.</dd>
 </dl>
+
+Addons files must take the format of:
+```yaml
+addon-name:
+ local: command to run locally, all created files will be  pushed to {location} on all units.
+ remote: command to run on every unit, all files created in {output} will be saved in the crashdump.
+ local-per-unit: local command to run for each {unit} or each {machine}. Std output will be saved.
+```
