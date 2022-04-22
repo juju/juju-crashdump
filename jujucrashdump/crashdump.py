@@ -503,7 +503,9 @@ def parse_args():
         help="Make a 'small' crashdump, by skipping the " "contents of /var/lib/juju.",
     )
     parser.add_argument(
-        "-a", "--addon", action="append", help="Enable the addon with the given name"
+        "-a", "--addon", action="append", help="Enable the addon with the given name.\n"
+        "Buildin addons are: crm-status, juju-show-unit, juju-show-status-log, "
+        "juju-show-machine, ps-mem, sosreport, config, engine-report"
     )
     parser.add_argument(
         "-t",
@@ -516,11 +518,13 @@ def parse_args():
         "--addons-file",
         action="append",
         help="Use this file for addon definitions. Addon files should be fomatted as:\n"
-        " addon-name:\n  local: command to run locally, all created files will be "
-        " pushed to {location} on all units.\n  remote: command to run on every unit,"
-        " all files created in {output} will be saved in the crashdump.\n  local-per-"
-        "unit: local command to run for each {unit} or each {machine}. Std output will "
-        "be saved.",
+        "addon-name:\n # command to run locally (on the machine running juju crashdump"
+        "),\n # all created files will be pushed to {location} on all units.\n local: "
+        "echo 'example' > example.txt\n # command to run on every unit, all files "
+        "created in {output} will be saved in the crashdump.\n remote: mv {location}/"
+        "example.txt {output}/example.txt\n # local command to run for each {unit} or "
+        "each {machine}. Std output will be saved.\n local-per-unit: echo 'example "
+        "including {unit}'",
         default=[],
     )
     parser.add_argument(

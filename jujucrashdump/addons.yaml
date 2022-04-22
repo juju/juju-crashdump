@@ -29,9 +29,4 @@ inner:
 engine-report:
     remote: mkdir {output}/juju_introspection; . /etc/profile.d/juju-introspection.sh; juju_machine_lock > {output}/juju_introspection/juju_machine_lock.txt; juju_engine_report > {output}/juju_introspection/juju_engine_report.txt; for agent in $(grep -E '^\w' {output}/juju_introspection/juju_machine_lock.txt | cut -f 1 -d :); do juju_engine_report $agent > {output}/juju_introspection/juju_engine_report-$agent.txt; done;
 config:
-    local: |
-      export PATH="$SNAP/usr/bin:$PATH"
-      juju status --format=json | jq -r '.applications | keys | .[]' | while read app; do
-        juju config $app | cat >> $app-config.yaml || true
-      done
-    remote: "mkdir {output}/config; . /etc/profile.d/juju-introspection.sh; for app in $(juju_machine_lock | grep -E '^\\w' |sed 's/-[0-9]\\+:$//g' | sed 's/unit-//g'); do cp $app-config.yaml {output}/config; done;"
+    local-per-unit: juju config $(echo {unit} | cut -d \/ -f 1)
