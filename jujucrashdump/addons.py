@@ -3,7 +3,6 @@ import tempfile
 import shutil
 import shlex
 import yaml
-import sys
 import os
 import glob
 import logging
