@@ -99,9 +99,9 @@ class CrashdumpAddon(object):
         for action, command in self.info.items():
             if not hasattr(self, action.replace("-", "_")):
                 raise AttributeError("Invalid action: %s" % action)
-            getattr(self, action.replace("-", "_"))(*args, command)
+            getattr(self, action.replace("-", "_"))(command, *args)
 
-    def local(self, machines, units, context, command):
+    def local(self, command, machines, units, context):
         """This will fetch the command, and push it to the machines"""
         subprocess.check_call(command, shell=True, stdout=FNULL, stderr=FNULL)
         files = " ".join(glob.glob("*"))
@@ -109,7 +109,7 @@ class CrashdumpAddon(object):
             "juju scp -- -r  %s {machine}:%s" % (files, context["location"]), machines
         )
 
-    def local_per_unit(self, machines, units, context, cmd):
+    def local_per_unit(self, cmd, machines, units, context):
         # Check if {unit} or {machine} is used and update the command to push to the
         # juju machine accordingly.
         fields = list({f for _, f, _, _ in Formatter().parse(cmd) if f} - set(context))
@@ -121,7 +121,7 @@ class CrashdumpAddon(object):
         ).format(cmd=cmd, name=self.name, field="{%s}" % fields[0], **context)
         async_commands(command, vars()["%ss" % fields[0]], shell=True)
 
-    def remote(self, machines, units, context, command):
+    def remote(self, command, machines, units, context):
         """This will runt the remote command on the machines"""
         remote_cmd = '"cd {location}; %s"' % command.format(**context)
         remote_cmd = remote_cmd.format(**context)
