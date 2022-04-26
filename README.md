@@ -49,4 +49,34 @@ juju crashdump [-h] [-d] [-m MODEL] [-f MAX_FILE_SIZE] [-b BUG]
 <dd>Enable the addon with the given name</dd>
 <dt>--addons-file ADDONS_FILE</dt>
 <dd>Use this file for addon definitions</dd>
+<dt>--as-root</dt>
+<dd>Collect logs as root, may contain passwords etc. Addons with local commands will only run if this flag is enabled.</dd>
 </dl>
+
+### Addons
+
+Addons can be used to collect information that is not already present in files on the nodes.
+The following addons can be chosen from:
+ - crm-status
+ - listening (shows netstat)
+ - psaux
+ - juju-show-unit
+ - juju-show-status-log
+ - juju-show-machine
+ - [ps-mem](https://github.com/fginther/ps_mem.git)
+ - [sosreport](https://github.com/sosreport/sos.git)
+ - config (shows juju-config)
+ - engine-report (shows juju-introspection)
+
+Additional addons can be loaded using `--addons-file`. Addons files must take the format of:
+```yaml
+addon-name:
+ # command to run locally (on the machine running juju crashdump),
+ # all created files will be pushed to {location} on all units.
+ local: echo "example" > example.txt
+ # command to run on every unit, all files created in {output} will be saved in the crashdump.
+ remote: mv {location}/example.txt {output}/example.txt
+ # local command to run for each {unit} or each {machine}. Std output will be saved.
+ local-per-unit: echo "example including {unit}"
+```
+The commands can appear in any order, any command can be left out, but every command can only be used once.
