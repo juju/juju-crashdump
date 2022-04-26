@@ -30,6 +30,3 @@ engine-report:
     remote: mkdir {output}/juju_introspection; . /etc/profile.d/juju-introspection.sh; juju_machine_lock > {output}/juju_introspection/juju_machine_lock.txt; juju_engine_report > {output}/juju_introspection/juju_engine_report.txt; for agent in $(grep -E '^\w' {output}/juju_introspection/juju_machine_lock.txt | cut -f 1 -d :); do juju_engine_report $agent > {output}/juju_introspection/juju_engine_report-$agent.txt; done;
 config:
     local-per-unit: juju config $(echo {unit} | cut -d \/ -f 1)
-juju-export-bundle:
-    local: juju export-bundle > bundle.yaml
-    remote: mkdir {output}/juju-export-bundle; cp {location}/bundle.yaml {output}/juju-export-bundle/bundle.yaml
