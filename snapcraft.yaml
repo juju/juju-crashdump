@@ -10,9 +10,6 @@ description: >
 confinement: classic
 grade: stable
 base: core18
-architectures:
-  - build-on: amd64
-    run-on: [amd64, arm64]
 apps:
   juju-crashdump:
     command: bin/juju-crashdump
