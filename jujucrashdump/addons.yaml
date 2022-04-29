@@ -31,5 +31,5 @@ engine-report:
 config:
     local-per-unit: juju config $(echo {unit} | cut -d \/ -f 1)
 juju-export-bundle:
-    local: juju export-bundle > bundle.yaml
+    local: echo $(juju export-bundle) > bundle.yaml
     remote: mkdir {output}/juju-export-bundle; cp {location}/bundle.yaml {output}/juju-export-bundle/bundle.yaml

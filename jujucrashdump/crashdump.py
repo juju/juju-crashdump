@@ -274,9 +274,9 @@ class CrashCollector(object):
     def run_addons(self):
         services = service_unit_addresses(self.status)
         machines = services.keys()
-        units = [v for v in list(set.union(*list(services.values()))) if "/" in v]
         if not machines:
             return
+        units = [v for v in list(set.union(*list(services.values()))) if "/" in v]
         if self.addons_file is not None and self.addons is not None:
             return do_addons(
                 self.addons_file,
@@ -503,9 +503,12 @@ def parse_args():
         help="Make a 'small' crashdump, by skipping the " "contents of /var/lib/juju.",
     )
     parser.add_argument(
-        "-a", "--addon", action="append", help="Enable the addon with the given name.\n"
+        "-a",
+        "--addon",
+        action="append",
+        help="Enable the addon with the given name.\n"
         "Buildin addons are: crm-status, juju-show-unit, juju-show-status-log, "
-        "juju-show-machine, ps-mem, sosreport, config, engine-report"
+        "juju-show-machine, ps-mem, sosreport, config, engine-report",
     )
     parser.add_argument(
         "-t",
@@ -577,7 +580,7 @@ def main():
     # option to overwrite them with newer addons if present.
     opts.addons_file.insert(0, ADDONS_FILE_PATH)
     if opts.as_root:
-        opts.addon = (opts.addon if opts.addon else []) + ['listening', 'psaux']
+        opts.addon = (opts.addon if opts.addon else []) + ["listening", "psaux"]
         opts.addon = list(set(opts.addon))
     collector = CrashCollector(
         model=opts.model,
