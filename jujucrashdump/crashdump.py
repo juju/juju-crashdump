@@ -311,6 +311,7 @@ class CrashCollector(object):
         directories.append(".")
 
         tar_cmd = (
+            "mkdir -p {dump_location}/{uniq}/addon_output; "
             "cd {dump_location}/{uniq}/addon_output; "
             "{sudo}find {dirs} -mount -type f -size -{max_size}c -o -size "
             "{max_size}c 2>/dev/null | {sudo}tar -pcf ../juju-dump-{uniq}.tar"
