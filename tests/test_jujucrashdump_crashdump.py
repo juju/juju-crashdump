@@ -48,6 +48,7 @@ class TestCrashCollector(utils.BaseTestCase):
         self.DIRECTORIES.__iter__.return_value = ["dir"]
         self.target.create_unit_tarballs()
         self._run_all.assert_called_with(
+            "mkdir -p /tmp/fake-uuid/addon_output; "
             "cd /tmp/fake-uuid/addon_output; find dir extra_dir "
             "/var/lib/lxd/containers/*/rootfsdir "
             "/var/lib/lxd/containers/*/rootfsextra_dir . -mount "
@@ -58,6 +59,7 @@ class TestCrashCollector(utils.BaseTestCase):
         self.target.exclude = ("exc0", "exc1")
         self.target.create_unit_tarballs()
         self._run_all.assert_called_with(
+            "mkdir -p /tmp/fake-uuid/addon_output; "
             "cd /tmp/fake-uuid/addon_output; find dir extra_dir "
             "/var/lib/lxd/containers/*/rootfsdir "
             "/var/lib/lxd/containers/*/rootfsextra_dir . -mount "
