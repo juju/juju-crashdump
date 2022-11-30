@@ -64,6 +64,7 @@ DIRECTORIES = [
     "/var/snap/juju-db/common/logs/",
     "/var/lib/mysql/*-mysql-router",
     "/tmp/juju-exec*/script.sh",
+    "/var/snap/lxd/common/lxd/logs/",
 ]
 
 SSH_PARM = " -o StrictHostKeyChecking=no\
