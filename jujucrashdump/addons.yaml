@@ -1,7 +1,7 @@
 crm-status:
     remote: sudo crm status > {output}/cmr_status
 listening:
-    remote: sudo netstat -taupn | grep LISTEN 2>/dev/null | tee {output}/listening.txt
+    remote: sudo ss -taupnl | tee {output}/listening.txt
 psaux:
     remote: sudo ps aux > {output}/psaux.txt
 juju-show-unit:
