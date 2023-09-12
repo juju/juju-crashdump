@@ -67,11 +67,8 @@ DIRECTORIES = [
     "/var/snap/lxd/common/lxd/logs/",
 ]
 
-SSH_PARM = " -o StrictHostKeyChecking=no\
- -i ~/.local/share/juju/ssh/juju_id_rsa"
-
-SSH_CMD = "ssh" + SSH_PARM
-SCP_CMD = "scp" + SSH_PARM
+SSH_CMD = "juju ssh --proxy"
+SCP_CMD = "juju scp --proxy"
 
 
 def retrieve_single_unit_tarball(tuple_input):
