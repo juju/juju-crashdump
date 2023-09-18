@@ -22,8 +22,8 @@ def do_addons(
     units = [{"unit": u} for u in units]
     for addon_file in addons_file_path:
         addons.update(load_addons(addon_file, enabled_addons, as_root))
-    async_commands('juju ssh {machine} "mkdir -p %s"' % push_location, machines)
-    async_commands('juju ssh {machine} "mkdir -p %s"' % pull_location, machines)
+    async_commands('juju ssh --proxy {machine} "mkdir -p %s"' % push_location, machines)
+    async_commands('juju ssh --proxy {machine} "mkdir -p %s"' % pull_location, machines)
     for addon in enabled_addons:
         if addon not in addons:
             raise AttributeError(
@@ -114,7 +114,8 @@ class CrashdumpAddon(object):
             return False
         files = " ".join(glob.glob("*"))
         async_commands(
-            "juju scp -- -r  %s {machine}:%s" % (files, context["location"]), machines
+            "juju scp --proxy -- -r  %s {machine}:%s" % (files, context["location"]),
+            machines,
         )
         return True
 
@@ -125,7 +126,7 @@ class CrashdumpAddon(object):
         if len(fields) > 1 or not fields[0] in ["machine", "unit"]:
             raise ValueError("Invalid fields for local-per-unit: %s" % fields)
         command = (
-            "{cmd} | juju ssh {field} 'mkdir {output}/{name}; "
+            "{cmd} | juju ssh --proxy {field} 'mkdir {output}/{name}; "
             "cat > {output}/{name}/$(echo {field} | tr / _)'"
         ).format(cmd=cmd, name=self.name, field="{%s}" % fields[0], **context)
         async_commands(command, vars()["%ss" % fields[0]], shell=True)
@@ -135,5 +136,5 @@ class CrashdumpAddon(object):
         """This will runt the remote command on the machines"""
         remote_cmd = '"cd {location}; %s"' % command.format(**context)
         remote_cmd = remote_cmd.format(**context)
-        async_commands("juju ssh {machine} -- %s" % remote_cmd, machines)
+        async_commands("juju ssh --proxy {machine} -- %s" % remote_cmd, machines)
         return True
