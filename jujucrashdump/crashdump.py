@@ -16,6 +16,7 @@ import yaml
 import concurrent.futures
 import logging
 import ssh_agent_setup
+
 from collections import defaultdict
 from os.path import expanduser
 
@@ -200,10 +201,10 @@ def juju_storage_pools():
 def run_ssh(host, timeout, ssh_cmd, cmd):
     # Each host can have several interfaces and IP addresses.
     # This cycles through them and uses the first working.
-    for i, ip in enumerate(host):
+    for ip in host:
         if run_cmd("timeout {}s {} {} '{}'".format(timeout, ssh_cmd, ip, cmd)):
-            # If successful, try this host first next time
-            host.insert(0, host.pop(i))
+            # If successful, no need to try the other hosts again
+            host = [ip]
             break
 
 
