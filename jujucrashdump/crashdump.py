@@ -199,9 +199,10 @@ def juju_storage_pools():
 def run_ssh(host, timeout, ssh_cmd, cmd):
     # Each host can have several interfaces and IP addresses.
     # This cycles through them and uses the first working.
-    for ip in host:
+    for i, ip in enumerate(host):
         if run_cmd("timeout {}s {} {} '{}'".format(timeout, ssh_cmd, ip, cmd)):
-            host.insert(0, host.pop(host.index(ip)))
+            # If successful, try this host first next time
+            host.insert(0, host.pop(i))
             break
 
 
@@ -275,7 +276,14 @@ class CrashCollector(object):
                         # full brought up yet.
                         pass
 
-        controller_ips = self._get_controller_ips()
+        self._machines = self._add_proxy_jumps(machines)
+        return self._machines
+
+    def _add_proxy_jumps(self, machines):
+        controller_ips = []
+        for _, info in self.controller_status.get("machines", {}).items():
+            controller_ips.extend(info.get("ip-addresses", []))
+
         for machine, ips in machines.items():
             for ip in ips[:]:
                 for controller_ip in controller_ips:
@@ -283,14 +291,7 @@ class CrashCollector(object):
                         "-J ubuntu@{} {}".format(controller_ip, ip)
                     )
 
-        self._machines = machines
-        return self._machines
-
-    def _get_controller_ips(self):
-        controller_ips = []
-        for _, info in self.controller_status.get("machines", {}).items():
-            controller_ips.extend(info.get("ip-addresses", []))
-        return controller_ips
+        return machines
 
     def _run_all(self, cmd):
         all_machines = self.get_all()
