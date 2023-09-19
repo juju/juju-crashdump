@@ -23,4 +23,5 @@ parts:
       - jq
     python-packages:
       - pyyaml
+      - ssh-agent-setup
     source: .

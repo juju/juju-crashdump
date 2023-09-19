@@ -15,6 +15,7 @@ import uuid
 import yaml
 import concurrent.futures
 import logging
+import ssh_agent_setup
 from collections import defaultdict
 from os.path import expanduser
 
@@ -247,7 +248,10 @@ class CrashCollector(object):
         self.unit_dump_location = unit_dump_location
         self.as_root = as_root
         self._machines = None
-        run_cmd("ssh-add ~/.local/share/juju/ssh/juju_id_rsa")
+        ssh_agent_setup.setup()
+        ssh_agent_setup.add_key(
+            os.path.join(os.path.expanduser("~"), ".local/share/juju/ssh/juju_id_rsa")
+        )
 
     def get_all(self):
         if self._machines:
@@ -354,9 +358,6 @@ class CrashCollector(object):
             uniq=self.uniq,
             sudo="sudo " if self.as_root else "",
             dump_location=self.unit_dump_location,
-        )
-        self._run_all(
-            "rm -rf {dump_location}".format(dump_location=self.unit_dump_location)
         )
         self._run_all(
             "mkdir -p {dump_location}/{uniq}".format(
