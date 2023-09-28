@@ -40,6 +40,7 @@ DIRECTORIES = [
     "/etc/cinder",
     "/etc/cloud",
     "/etc/corosync",
+    "/etc/designate",
     "/etc/glance",
     "/etc/gnocchi",
     "/etc/keystone",
