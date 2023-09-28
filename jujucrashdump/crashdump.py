@@ -281,12 +281,16 @@ class CrashCollector(object):
                         # full brought up yet.
                         pass
 
+        # _machines is now a list of partial ssh commands, for example:
+        # ["ubuntu@x.x.x.x", "-J ubuntu@y.y.y.y ubuntu@x.x.x.x"]
+        # the proxy jumps are through the controller machines since the machines
+        # themselves may not be accessible directly
         self._machines = self._add_proxy_jumps(machines)
         return self._machines
 
     def _add_proxy_jumps(self, machines):
         controller_ips = []
-        for _, info in self.controller_status.get("machines", {}).items():
+        for info in self.controller_status.get("machines", {}).values():
             controller_ips.extend(info.get("ip-addresses", []))
 
         for machine, ips in machines.items():
