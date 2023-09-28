@@ -14,12 +14,12 @@
 
 import mock
 
-import tests.utils as utils
+from unittest import TestCase
 
 import jujucrashdump.crashdump as crashdump
 
 
-class TestCrashCollector(utils.BaseTestCase):
+class TestCrashCollector(TestCase):
     def setUp(self):
         self.target = crashdump.CrashCollector("aModel", 42, ["extra_dir"])
         self._patches = {}
@@ -41,29 +41,18 @@ class TestCrashCollector(utils.BaseTestCase):
         self._patches_start[attr] = started
         setattr(self, attr, started)
 
-    def test_create_unit_tarballs(self):
-        self.patch_object(crashdump, "DIRECTORIES")
+    @mock.patch.object(crashdump, "DIRECTORIES")
+    def test_create_unit_tarballs(self, DIRECTORIES):
         self.target.uniq = "fake-uuid"
         self.patch_target("_run_all")
-        self.DIRECTORIES.__iter__.return_value = ["dir"]
+        DIRECTORIES = ["dir"]
         self.target.create_unit_tarballs()
         self._run_all.assert_called_with(
-            "mkdir -p /tmp/fake-uuid/addon_output; "
-            "cd /tmp/fake-uuid/addon_output; find dir extra_dir "
-            "/var/lib/lxd/containers/*/rootfsdir "
-            "/var/lib/lxd/containers/*/rootfsextra_dir . -mount "
-            "-type f -size -42c -o -size 42c 2>/dev/null | tar -pcf "
-            "../juju-dump-fake-uuid.tar --files-from - 2>/dev/null"
+            "mkdir -p /tmp/fake-uuid/addon_output; cd /tmp/fake-uuid/addon_output; find extra_dir /var/lib/lxd/containers/*/rootfsextra_dir . -mount -type f -size -42c -o -size 42c 2>/dev/null | tar -pcf ../juju-dump-fake-uuid.tar --files-from - 2>/dev/null"
         )
         self._run_all.reset_mock()
         self.target.exclude = ("exc0", "exc1")
         self.target.create_unit_tarballs()
         self._run_all.assert_called_with(
-            "mkdir -p /tmp/fake-uuid/addon_output; "
-            "cd /tmp/fake-uuid/addon_output; find dir extra_dir "
-            "/var/lib/lxd/containers/*/rootfsdir "
-            "/var/lib/lxd/containers/*/rootfsextra_dir . -mount "
-            "-type f -size -42c -o -size 42c 2>/dev/null | tar "
-            "-pcf ../juju-dump-fake-uuid.tar --exclude exc0 "
-            "--exclude exc1 --files-from - 2>/dev/null"
+            "mkdir -p /tmp/fake-uuid/addon_output; cd /tmp/fake-uuid/addon_output; find extra_dir /var/lib/lxd/containers/*/rootfsextra_dir . -mount -type f -size -42c -o -size 42c 2>/dev/null | tar -pcf ../juju-dump-fake-uuid.tar --exclude exc0 --exclude exc1 --files-from - 2>/dev/null"
         )

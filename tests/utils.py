@@ -20,10 +20,10 @@ import unittest
 
 @contextlib.contextmanager
 def patch_open():
-    '''Patch open() to allow mocking both open() itself and the file that is
+    """Patch open() to allow mocking both open() itself and the file that is
     yielded.
 
-    Yields the mock for "open" and "file", respectively.'''
+    Yields the mock for "open" and "file", respectively."""
     mock_open = mock.MagicMock(spec=open)
     mock_file = mock.MagicMock(spec=io.FileIO)
 
@@ -32,12 +32,11 @@ def patch_open():
         mock_open(*args, **kwargs)
         yield mock_file
 
-    with mock.patch('builtins.open', stub_open):
+    with mock.patch("builtins.open", stub_open):
         yield mock_open, mock_file
 
 
 class BaseTestCase(unittest.TestCase):
-
     def setUp(self):
         self._patches = {}
         self._patches_start = {}
@@ -49,8 +48,7 @@ class BaseTestCase(unittest.TestCase):
         self._patches = None
         self._patches_start = None
 
-    def patch_object(self, obj, attr, return_value=None, name=None, new=None,
-                     **kwargs):
+    def patch_object(self, obj, attr, return_value=None, name=None, new=None, **kwargs):
         if name is None:
             name = attr
         if new is not None:
