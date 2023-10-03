@@ -1,6 +1,4 @@
-#!/usr/bin/env python2
-# this is python2/3 compatible, but the following bug breaks us...
-# https://bugs.launchpad.net/ubuntu/+source/python-launchpadlib/+bug/1425575
+#!/usr/bin/env python3
 
 # you also might need to $ sudo apt install python-apport
 
