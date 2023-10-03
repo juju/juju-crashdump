@@ -1,4 +1,4 @@
-# Copyright 2020 Canonical Ltd
+# Copyright 2023 Canonical Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,8 @@ import jujucrashdump.crashdump as crashdump
 
 
 class TestCrashCollector(TestCase):
-    def setUp(self):
+    @mock.patch.object(crashdump.ssh_agent_setup, "add_key")
+    def setUp(self, mock_add_key):
         self.target = crashdump.CrashCollector("aModel", 42, ["extra_dir"])
         self._patches = {}
         self._patches_start = {}
