@@ -82,6 +82,9 @@ def async_commands(command, contexts, timeout=45, shell=False):
                 args,
             ]
         )
+        # The juju controller will only allow 10 connections at once
+        if len(procs) > 9:
+            procs[-10][0].communicate()
     for proc in procs:
         proc[0].communicate()
         if proc[0].returncode != 0:
