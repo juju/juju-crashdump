@@ -1,6 +1,4 @@
-#!/usr/bin/env python2
-# this is python2/3 compatible, but the following bug breaks us...
-# https://bugs.launchpad.net/ubuntu/+source/python-launchpadlib/+bug/1425575
+#!/usr/bin/env python3
 
 # you also might need to $ sudo apt install python-apport
 
@@ -15,6 +13,8 @@ import uuid
 import yaml
 import concurrent.futures
 import logging
+import ssh_agent_setup
+
 from collections import defaultdict
 from os.path import expanduser
 
@@ -68,8 +68,7 @@ DIRECTORIES = [
     "/var/snap/lxd/common/lxd/logs/",
 ]
 
-SSH_PARM = " -o StrictHostKeyChecking=no\
- -i ~/.local/share/juju/ssh/juju_id_rsa"
+SSH_PARM = " -o StrictHostKeyChecking=no"
 
 SSH_CMD = "ssh" + SSH_PARM
 SCP_CMD = "scp" + SSH_PARM
@@ -80,7 +79,7 @@ def retrieve_single_unit_tarball(tuple_input):
     unit_unique = uuid.uuid4()
     for ip in all_machines[machine]:
         if run_cmd(
-            "{scp} ubuntu@{ip}:{dump_location}/{unique}/juju-dump-{unique}.tar"
+            "{scp} {ip}:{dump_location}/{unique}/juju-dump-{unique}.tar"
             " {unit_unique}.tar".format(
                 scp=SCP_CMD,
                 ip=ip,
@@ -175,6 +174,9 @@ def juju_check():
 def juju_status():
     juju_cmd(" status --format=yaml", to_file="juju_status.yaml")
     juju_cmd(
+        " status -m controller --format=yaml", to_file="juju_status_controller.yaml"
+    )
+    juju_cmd(
         " status --format=tabular --relations --storage", to_file="juju_status.txt"
     )
 
@@ -199,7 +201,9 @@ def run_ssh(host, timeout, ssh_cmd, cmd):
     # Each host can have several interfaces and IP addresses.
     # This cycles through them and uses the first working.
     for ip in host:
-        if run_cmd("timeout {}s {} ubuntu@{} '{}'".format(timeout, ssh_cmd, ip, cmd)):
+        if run_cmd("timeout {}s {} {} '{}'".format(timeout, ssh_cmd, ip, cmd)):
+            # If successful, no need to try the other hosts again
+            host = [ip]
             break
 
 
@@ -243,13 +247,22 @@ class CrashCollector(object):
         self.journalctl = journalctl
         self.unit_dump_location = unit_dump_location
         self.as_root = as_root
+        self._machines = None
+        ssh_agent_setup.setup()
+        ssh_agent_setup.add_key(
+            os.path.join(os.path.expanduser("~"), ".local/share/juju/ssh/juju_id_rsa")
+        )
 
     def get_all(self):
+        if self._machines:
+            return self._machines
         machines = {}
         juju_status = self.status
         for machine, machine_data in juju_status["machines"].items():
             try:
-                machines[machine] = machine_data["ip-addresses"]
+                machines[machine] = [
+                    "ubuntu@{}".format(ip) for ip in machine_data["ip-addresses"]
+                ]
             except KeyError:
                 # A machine in allocating may not have an IP yet.
                 continue
@@ -257,12 +270,35 @@ class CrashCollector(object):
                 containers = juju_status["machines"][machine]["containers"]
                 for container, container_data in containers.items():
                     try:
-                        machines[container] = container_data["ip-addresses"]
+                        machines[container] = [
+                            "ubuntu@{}".format(ip)
+                            for ip in container_data["ip-addresses"]
+                        ]
                     except KeyError:
                         # Sometimes containers don't have ip-addresses, for
                         # example, when they are pending and haven't been
                         # full brought up yet.
                         pass
+
+        # _machines is now a list of partial ssh commands, for example:
+        # ["ubuntu@x.x.x.x", "-J ubuntu@y.y.y.y ubuntu@x.x.x.x"]
+        # the proxy jumps are through the controller machines since the machines
+        # themselves may not be accessible directly
+        self._machines = self._add_proxy_jumps(machines)
+        return self._machines
+
+    def _add_proxy_jumps(self, machines):
+        controller_ips = []
+        for info in self.controller_status.get("machines", {}).values():
+            controller_ips.extend(info.get("ip-addresses", []))
+
+        for machine, ips in machines.items():
+            for ip in ips[:]:
+                for controller_ip in controller_ips:
+                    machines[machine].append(
+                        "-J ubuntu@{} {}".format(controller_ip, ip)
+                    )
+
         return machines
 
     def _run_all(self, cmd):
@@ -327,7 +363,6 @@ class CrashCollector(object):
             sudo="sudo " if self.as_root else "",
             dump_location=self.unit_dump_location,
         )
-
         self._run_all(
             "mkdir -p {dump_location}/{uniq}".format(
                 dump_location=self.unit_dump_location, uniq=self.uniq
@@ -339,6 +374,13 @@ class CrashCollector(object):
     @property
     def status(self):
         juju_status = yaml.load(open("juju_status.yaml", "r"), Loader=yaml.FullLoader)
+        return juju_status
+
+    @property
+    def controller_status(self):
+        juju_status = yaml.load(
+            open("juju_status_controller.yaml", "r"), Loader=yaml.FullLoader
+        )
         return juju_status
 
     def retrieve_unit_tarballs(self):
