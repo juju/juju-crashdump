@@ -20,7 +20,11 @@ parts:
       - python3-apport
       - jq
       - python3.10-minimal
+      - libpython3.10-minimal
+      - libpython3.10-stdlib
     python-packages:
       - pyyaml
       - ssh-agent-setup
     source: .
+    build-attributes:
+      - enable-patchelf
